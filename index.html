@@ -7,13 +7,21 @@
 
   <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
-
+  
   <!-- Lucide Icons (UMD) -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 
+  <!-- html2canvas for downloading images -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
+
+    body { font-family: 'Inter', sans-serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
     .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 
+    /* Animations */
     @keyframes fade-in-up {
       from { opacity: 0; transform: translateY(20px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -31,1141 +39,1258 @@
       50%      { transform: translateY(-6px); }
     }
     .animate-bounce-short { animation: bounce-short 1s infinite; }
+    
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .marker-pulse { animation: pulse-ring 2s infinite; }
+    
+    /* Custom Scrollbar for dashboards */
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { bg: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
   </style>
 </head>
 
-<body class="bg-white text-gray-800">
-  <div id="app" class="min-h-screen bg-white font-sans text-gray-800 flex flex-col"></div>
+<body class="bg-gray-50 text-gray-800 antialiased selection:bg-green-200 selection:text-green-900">
+  <div id="app" class="min-h-screen flex flex-col"></div>
 
   <script>
-    // --- Translations ---
-    const translations = {
-      en: {
-        appTitle: "Yobe State Mining Company",
-        subtitle: "Regulating & Empowering Mining Activities",
-        welcome: "Welcome",
-        start: "Start Here",
-        applyLicense: "Apply for License",
-        applyLicenseDesc: "For companies and large scale mining.",
-        registerArtisan: "Register as Artisan",
-        registerArtisanDesc: "For individual local miners.",
-        idCard: "Get Miner ID Card",
-        idCardDesc: "Download or view your identification.",
-        renew: "Renew Papers",
-        renewDesc: "Update your expired documents.",
-        status: "Check Status",
-        formName: "Full Name",
-        formPhone: "Phone Number",
-        formLocation: "Mining Location / LGA",
-        formMineral: "Mineral Type",
-        formPhoto: "Upload Photo",
-        submit: "Submit Application",
-        processing: "Processing...",
-        success: "Successful!",
-        successMsg: "Your application has been received.",
-        download: "Download/Save",
-        back: "Back",
-        miningType: "Mining Type",
-        gold: "Gold",
-        gypsum: "Gypsum",
-        limestone: "Limestone",
-        diatomite: "Diatomite",
-        kaolin: "Kaolin",
-        artisanID: "ARTISAN MINER ID",
-        licenseCert: "MINING LICENSE",
-        yobeState: "Yobe State Govt",
-        validUntil: "Valid Until",
-        idNumber: "ID Number",
-        viewDashboard: "Go to Dashboard",
-        instruction: "Select an option below to begin.",
-        step1: "Personal Info",
-        step2: "Mining Details",
-        next: "Next",
-        prev: "Previous",
-        adminLogin: "Staff Login",
-        dashboard: "Executive Dashboard",
-        pendingApps: "Pending Applications",
-        totalRevenue: "Total Revenue",
-        activeMiners: "Active Miners",
-        licensesIssued: "Licenses Issued",
-        approve: "Approve",
-        reject: "Reject",
-        logout: "Logout",
-        errorName: "Name is required",
-        errorPhone: "Valid phone number required",
-        portalEntry: "Enter Portal",
-        home: "Home",
-        services: "Services",
-        contact: "Contact",
-        recentActivity: "Recent Activity",
-        footerDesc: "Official platform for regulating mining activities within Yobe State, ensuring safety, compliance, and economic growth.",
-        quickLinks: "Quick Links",
-        contactUs: "Contact Us"
-      },
-      ha: {
-        appTitle: "Kamfanin Hakar Ma'adinai na Jihar Yobe",
-        subtitle: "Rungumar Ayyukan Hakar Ma'adinai",
-        welcome: "Barka da zuwa",
-        start: "Fara Anan",
-        applyLicense: "Nemi Lasisi",
-        applyLicenseDesc: "Domin manyan kamfanoni.",
-        registerArtisan: "Yi Rajistar 'Yan Haka",
-        registerArtisanDesc: "Domin kananan masu hakar ma'adinai.",
-        idCard: "Karbi Katin Shaida",
-        idCardDesc: "Duba ko sauke katin shaidar ka.",
-        renew: "Sabunta Takardu",
-        renewDesc: "Sabunta tsoffin takardu.",
-        status: "Duba Matsayi",
-        formName: "Cikakken Suna",
-        formPhone: "Lambar Waya",
-        formLocation: "Wurin Haka / Karamar Hukuma",
-        formMineral: "Nau'in Ma'adani",
-        formPhoto: "Saka Hoto",
-        submit: "Aika Bukata",
-        processing: "Ana Aiki...",
-        success: "An Yi Nasara!",
-        successMsg: "Mun karbi bukatar ku.",
-        download: "Sauke/Ajiye",
-        back: "Baya",
-        miningType: "Nau'in Haka",
-        gold: "Zinaria (Gold)",
-        gypsum: "Gypsum",
-        limestone: "Farin Kasa (Limestone)",
-        diatomite: "Diatomite",
-        kaolin: "Kaolin",
-        artisanID: "KATIN MAI HAKA",
-        licenseCert: "LASISIN HAKA",
-        yobeState: "Gwamnatin Jihar Yobe",
-        validUntil: "Yana aiki har",
-        idNumber: "Lambar ID",
-        viewDashboard: "Je zuwa Dashboard",
-        instruction: "Zabi daya daga kasa don farawa.",
-        step1: "Bayanin Kai",
-        step2: "Bayanin Aiki",
-        next: "Gaba",
-        prev: "Baya",
-        adminLogin: "Shiga na Ma'aikata",
-        dashboard: "Dashboard na Shugabanni",
-        pendingApps: "Bukatu masu Jira",
-        totalRevenue: "Jimlar Kudin Shiga",
-        activeMiners: "Masu Haka Masu Aiki",
-        licensesIssued: "Lasisi da aka Bayar",
-        approve: "Amince",
-        reject: "Kiyi",
-        logout: "Fita",
-        errorName: "Ana bukatar suna",
-        errorPhone: "Lambar waya bata inganta ba",
-        portalEntry: "Shiga Shafin",
-        home: "Gida",
-        services: "Ayyuka",
-        contact: "Tuntube Mu",
-        recentActivity: "Ayyukan Kwanan Nan",
-        footerDesc: "Shafin hukuma na kula da ayyukan hakar ma'adinai a Jihar Yobe, tabbatar da tsaro, bin doka, da ci gaban tattalin arziki.",
-        quickLinks: "Hanyoyi Masu Sauki",
-        contactUs: "Tuntube Mu"
-      }
-    };
-
-    // --- Mock Data ---
-    const LGAs = ["Damaturu","Potiskum","Nguru","Gashua","Geidam","Buni Yadi","Fika","Nangere"];
-
-    const mockApplications = [
-      { id: 101, name: "Ibrahim Musa", type: "Artisan", location: "Damaturu", date: "2023-10-24", status: "Pending" },
-      { id: 102, name: "Yobe Gold Corp", type: "License", location: "Fika", date: "2023-10-25", status: "Pending" },
-      { id: 103, name: "Fatima Sani", type: "Artisan", location: "Nguru", date: "2023-10-23", status: "Approved" },
-      { id: 104, name: "Desert Sands Ltd", type: "License", location: "Geidam", date: "2023-10-22", status: "Rejected" },
-      { id: 105, name: "Aliyu Bello", type: "Artisan", location: "Potiskum", date: "2023-10-26", status: "Pending" },
-    ];
-
-    // --- State ---
-    const state = {
-      lang: "en",
-      view: "landing", // landing, miner-portal, artisan, license, success, admin-login, admin-dashboard, idcard, renew
-      completedData: null,
-
-      // form state
-      formStep: 1,
-      formLoading: false,
-      formErrors: {},
-      formData: {
-        name: "",
-        phone: "",
-        lga: LGAs[0],
-        mineral: "Gypsum",
-        photoName: ""
-      },
-
-      // admin search
-      adminSearch: ""
-    };
-
-    const appEl = document.getElementById("app");
-    const t = (key) => translations[state.lang][key] ?? key;
-
-    function scrollTop() { window.scrollTo({ top: 0, behavior: "instant" }); }
-    function smoothToBottom() { window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); }
-
-    function setLang(newLang) {
-      state.lang = newLang;
-      render();
-    }
-
-    function navigate(view) {
-      scrollTop();
-      state.view = view;
-      state.completedData = null;
-
-      // reset form when entering it
-      if (view === "artisan" || view === "license") {
-        state.formStep = 1;
-        state.formLoading = false;
-        state.formErrors = {};
-        state.formData = { name: "", phone: "", lga: LGAs[0], mineral: "Gypsum", photoName: "" };
-      }
-      render();
-    }
-
-    // --- Validation ---
-    function validateStep1() {
-      const errors = {};
-      if (!state.formData.name.trim()) errors.name = t("errorName");
-      if (!state.formData.phone || state.formData.phone.length < 10) errors.phone = t("errorPhone");
-      state.formErrors = errors;
-      return Object.keys(errors).length === 0;
-    }
-
-    // --- Helpers ---
-    function icon(name, cls="w-5 h-5") {
-      return `<i data-lucide="${name}" class="${cls}"></i>`;
-    }
-
-    function yearNow() { return new Date().getFullYear(); }
-
-    // --- Render: Header ---
-    function renderHeader() {
-      return `
-        <header class="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white p-4 shadow-lg sticky top-0 z-50">
-          <div class="flex justify-between items-center max-w-6xl mx-auto">
-            <div class="flex items-center space-x-3 cursor-pointer group" id="nav-home-brand">
-              <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center shadow-md border-2 border-white group-hover:scale-105 transition-transform">
-                ${icon("pickaxe","text-emerald-900 w-6 h-6")}
-              </div>
-              <div>
-                <h1 class="font-bold text-sm md:text-lg leading-tight tracking-wide">${t("appTitle")}</h1>
-                <p class="text-[10px] md:text-xs text-emerald-200 uppercase tracking-wider hidden md:block">${t("subtitle")}</p>
-              </div>
-            </div>
-
-            <div class="flex items-center space-x-4">
-              <nav class="hidden md:flex space-x-6 text-sm font-medium text-emerald-100">
-                <button id="nav-home" class="hover:text-white hover:underline">${t("home")}</button>
-                <button id="nav-services" class="hover:text-white hover:underline">${t("services")}</button>
-                <button id="nav-contact" class="hover:text-white hover:underline">${t("contact")}</button>
-              </nav>
-
-              <button id="lang-toggle"
-                class="flex items-center bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-all text-xs md:text-sm font-medium border border-white/20 backdrop-blur-sm">
-                ${icon("languages","w-4 h-4 mr-2")}
-                ${state.lang === "en" ? "HA" : "EN"}
-              </button>
-            </div>
-          </div>
-        </header>
-      `;
-    }
-
-    // --- Render: Footer ---
-    function renderFooter() {
-      return `
-        <footer class="bg-emerald-900 text-white pt-12 pb-6 mt-auto">
-          <div class="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <div class="flex items-center space-x-2 mb-4">
-                ${icon("pickaxe","text-yellow-400 w-6 h-6")}
-                <span class="font-bold text-lg">${t("appTitle")}</span>
-              </div>
-              <p class="text-emerald-200 text-sm leading-relaxed mb-4">${t("footerDesc")}</p>
-              <div class="flex space-x-4">
-                <a href="#" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-yellow-400 hover:text-emerald-900 transition-colors">
-                  ${icon("facebook","w-4 h-4")}
-                </a>
-                <a href="#" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-yellow-400 hover:text-emerald-900 transition-colors">
-                  ${icon("twitter","w-4 h-4")}
-                </a>
-                <a href="#" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-yellow-400 hover:text-emerald-900 transition-colors">
-                  ${icon("instagram","w-4 h-4")}
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="font-bold text-yellow-400 mb-4 uppercase tracking-wider text-sm">${t("quickLinks")}</h3>
-              <ul class="space-y-2 text-emerald-200 text-sm">
-                <li><a href="#" class="hover:text-white transition-colors">License Verification</a></li>
-                <li><a href="#" class="hover:text-white transition-colors">Mining Regulations</a></li>
-                <li><a href="#" class="hover:text-white transition-colors">Report Illegal Mining</a></li>
-                <li><a href="#" class="hover:text-white transition-colors">Safety Guidelines</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 class="font-bold text-yellow-400 mb-4 uppercase tracking-wider text-sm">${t("contactUs")}</h3>
-              <ul class="space-y-3 text-emerald-200 text-sm">
-                <li class="flex items-start space-x-3">
-                  ${icon("map-pin","w-5 h-5 text-yellow-400 shrink-0 mt-0.5")}
-                  <span>No. 12 Bukar Abba Ibrahim Way, Damaturu, Yobe State.</span>
-                </li>
-                <li class="flex items-center space-x-3">
-                  ${icon("phone","w-5 h-5 text-yellow-400 shrink-0")}
-                  <span>+234 800 MINING YB</span>
-                </li>
-                <li class="flex items-center space-x-3">
-                  ${icon("mail","w-5 h-5 text-yellow-400 shrink-0")}
-                  <span>info@yobemining.gov.ng</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="border-t border-emerald-800 pt-6 text-center text-xs text-emerald-400">
-            &copy; ${yearNow()} Yobe State Mining Company. All rights reserved.
-          </div>
-        </footer>
-      `;
-    }
-
-    // --- Render: Landing Page ---
-    function renderLanding() {
-      return `
-        <div class="animate-fade-in-up">
-          <div class="relative bg-emerald-900 text-white overflow-hidden">
-            <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1576082989508-e16109968803?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-20"></div>
-            <div class="absolute inset-0 bg-gradient-to-r from-emerald-900/90 to-emerald-800/80"></div>
-
-            <div class="relative max-w-6xl mx-auto px-6 py-24 md:py-32 flex flex-col md:flex-row items-center">
-              <div class="md:w-1/2 mb-10 md:mb-0">
-                <div class="inline-block px-3 py-1 bg-yellow-400 text-emerald-900 text-xs font-bold rounded-full mb-4 uppercase tracking-wider">
-                  Official Portal
-                </div>
-                <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                  ${t("subtitle")}
-                </h1>
-                <p class="text-emerald-100 text-lg mb-8 max-w-lg">
-                  Streamlining mining operations in Yobe State through digital innovation. Register, apply, and monitor efficiently.
-                </p>
-
-                <div class="flex flex-col sm:flex-row gap-4">
-                  <button id="btn-portal"
-                    class="bg-yellow-400 text-emerald-900 px-8 py-4 rounded-xl font-bold hover:bg-yellow-300 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center">
-                    ${t("portalEntry")} ${icon("arrow-right","ml-2 w-5 h-5")}
-                  </button>
-                  <button id="btn-admin"
-                    class="bg-transparent border-2 border-white/30 text-white px-8 py-4 rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center">
-                    ${icon("lock","mr-2 w-4 h-4")} ${t("adminLogin")}
-                  </button>
-                </div>
-              </div>
-
-              <div class="md:w-1/2 flex justify-center">
-                <div class="relative">
-                  <div class="absolute -top-4 -left-4 w-full h-full border-2 border-yellow-400 rounded-2xl"></div>
-                  <div class="bg-emerald-800 p-8 rounded-2xl shadow-2xl relative z-10 max-w-md border border-emerald-700">
-                    <div class="flex items-center space-x-4 mb-6">
-                      <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                        ${icon("shield-check","w-6 h-6 text-yellow-400")}
-                      </div>
-                      <div>
-                        <h3 class="font-bold text-lg">Secure Verification</h3>
-                        <p class="text-emerald-300 text-sm">Instant digital ID validation</p>
-                      </div>
-                    </div>
-
-                    <div class="flex items-center space-x-4 mb-6">
-                      <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                        ${icon("activity","w-6 h-6 text-yellow-400")}
-                      </div>
-                      <div>
-                        <h3 class="font-bold text-lg">Real-time Monitoring</h3>
-                        <p class="text-emerald-300 text-sm">Track mining activities across LGAs</p>
-                      </div>
-                    </div>
-
-                    <div class="flex items-center space-x-4">
-                      <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                        ${icon("file-check","w-6 h-6 text-yellow-400")}
-                      </div>
-                      <div>
-                        <h3 class="font-bold text-lg">Fast Approvals</h3>
-                        <p class="text-emerald-300 text-sm">Digital workflow for licensing</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <div class="bg-white py-12 border-b border-gray-100">
-            <div class="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              <div>
-                <div class="text-3xl md:text-4xl font-bold text-emerald-800 mb-1">2,500+</div>
-                <div class="text-gray-500 text-sm uppercase tracking-wide">Registered Miners</div>
-              </div>
-              <div>
-                <div class="text-3xl md:text-4xl font-bold text-emerald-800 mb-1">150+</div>
-                <div class="text-gray-500 text-sm uppercase tracking-wide">Companies</div>
-              </div>
-              <div>
-                <div class="text-3xl md:text-4xl font-bold text-emerald-800 mb-1">17</div>
-                <div class="text-gray-500 text-sm uppercase tracking-wide">LGAs Covered</div>
-              </div>
-              <div>
-                <div class="text-3xl md:text-4xl font-bold text-emerald-800 mb-1">98%</div>
-                <div class="text-gray-500 text-sm uppercase tracking-wide">Compliance Rate</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- Render: Miner Portal ---
-    function renderMinerPortal() {
-      return `
-        <div class="animate-fade-in-up">
-          <div class="relative bg-emerald-50 pb-8 rounded-b-[2.5rem] overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-32 bg-emerald-600 rounded-b-[50%] scale-x-150 -translate-y-16 opacity-20"></div>
-
-            <div class="max-w-md mx-auto px-6 pt-6 text-center relative z-10">
-              <h2 class="text-2xl font-bold text-emerald-900 mb-2">${t("welcome")}, Miner!</h2>
-              <p class="text-gray-600 mb-6">${t("instruction")}</p>
-
-              <div class="grid grid-cols-2 gap-4">
-                <button id="btn-artisan"
-                  class="bg-white p-4 rounded-2xl shadow-md border-b-4 border-yellow-400 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center gap-2 group hover:bg-yellow-50">
-                  <div class="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    ${icon("user","w-6 h-6")}
-                  </div>
-                  <span class="font-bold text-sm text-gray-800 leading-tight">${t("registerArtisan")}</span>
-                </button>
-
-                <button id="btn-license"
-                  class="bg-white p-4 rounded-2xl shadow-md border-b-4 border-emerald-500 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center gap-2 group hover:bg-emerald-50">
-                  <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    ${icon("scroll-text","w-6 h-6")}
-                  </div>
-                  <span class="font-bold text-sm text-gray-800 leading-tight">${t("applyLicense")}</span>
-                </button>
-
-                <button id="btn-idcard"
-                  class="bg-white p-4 rounded-2xl shadow-md border-b-4 border-blue-400 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center gap-2 group hover:bg-blue-50">
-                  <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    ${icon("credit-card","w-6 h-6")}
-                  </div>
-                  <span class="font-bold text-sm text-gray-800 leading-tight">${t("idCard")}</span>
-                </button>
-
-                <button id="btn-renew"
-                  class="bg-white p-4 rounded-2xl shadow-md border-b-4 border-orange-400 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center gap-2 group hover:bg-orange-50">
-                  <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    ${icon("shield-check","w-6 h-6")}
-                  </div>
-                  <span class="font-bold text-sm text-gray-800 leading-tight">${t("renew")}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="max-w-md mx-auto px-6 py-8">
-            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start space-x-3">
-              ${icon("alert-circle","w-5 h-5 text-yellow-600 shrink-0 mt-0.5")}
-              <div>
-                <h4 class="font-bold text-yellow-800 text-sm">Notice / Sanarwa</h4>
-                <p class="text-xs text-yellow-700 mt-1">
-                  Ensure all details provided are accurate. False information may lead to license revocation. <br/>
-                  <span class="italic opacity-80">Tabbatar da bayanan da aka bayar daidai ne.</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- Render: Registration Form ---
-    function renderRegistrationForm(type) {
-      const isArtisan = type === "artisan";
-      const step = state.formStep;
-      const e = state.formErrors;
-      const d = state.formData;
-
-      const progressWidth = step === 1 ? "50%" : "100%";
-
-      const lgaOptions = LGAs.map(lga => `<option value="${lga}" ${d.lga===lga?"selected":""}>${lga}</option>`).join("");
-
-      const mineralOptions = `
-        <option value="Gypsum" ${d.mineral==="Gypsum"?"selected":""}>${t("gypsum")}</option>
-        <option value="Limestone" ${d.mineral==="Limestone"?"selected":""}>${t("limestone")}</option>
-        <option value="Gold" ${d.mineral==="Gold"?"selected":""}>${t("gold")}</option>
-        <option value="Diatomite" ${d.mineral==="Diatomite"?"selected":""}>${t("diatomite")}</option>
-      `;
-
-      return `
-        <div class="max-w-md mx-auto p-4 animate-fade-in-up">
-          <div class="flex items-center mb-6">
-            <button id="form-back" class="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              ${icon("arrow-left","w-6 h-6 text-gray-600")}
-            </button>
-            <h2 class="ml-2 text-xl font-bold text-emerald-900">
-              ${isArtisan ? t("registerArtisan") : t("applyLicense")}
-            </h2>
-          </div>
-
-          <div class="bg-white rounded-2xl shadow-xl p-6 relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gray-100">
-              <div class="h-full bg-emerald-500 transition-all duration-300" style="width:${progressWidth}"></div>
-            </div>
-
-            ${
-              step === 1 ? `
-                <div class="space-y-4 pt-4 animate-slide-in-right">
-                  <div>
-                    <label class="block">
-                      <span class="text-gray-700 font-medium mb-1 block">${t("formName")}</span>
-                      <div class="relative">
-                        <span class="absolute left-3 top-3 ${e.name ? "text-red-400" : "text-gray-400"}">
-                          ${icon("user","w-5 h-5")}
-                        </span>
-                        <input id="inp-name" type="text"
-                          class="w-full pl-10 pr-4 py-3 bg-gray-50 border rounded-xl focus:ring-2 focus:outline-none transition-all ${e.name ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-emerald-500"}"
-                          placeholder="e.g. Musa Ibrahim"
-                          value="${escapeHtml(d.name)}"
-                        />
-                      </div>
-                    </label>
-                    ${e.name ? `<p class="text-red-500 text-xs mt-1 ml-1">${e.name}</p>` : ``}
-                  </div>
-
-                  <div>
-                    <label class="block">
-                      <span class="text-gray-700 font-medium mb-1 block">${t("formPhone")}</span>
-                      <div class="relative">
-                        <span class="absolute left-3 top-3 ${e.phone ? "text-red-400" : "text-gray-400"}">
-                          ${icon("phone","w-5 h-5")}
-                        </span>
-                        <input id="inp-phone" type="tel"
-                          class="w-full pl-10 pr-4 py-3 bg-gray-50 border rounded-xl focus:ring-2 focus:outline-none transition-all ${e.phone ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-emerald-500"}"
-                          placeholder="080..."
-                          value="${escapeHtml(d.phone)}"
-                        />
-                      </div>
-                    </label>
-                    ${e.phone ? `<p class="text-red-500 text-xs mt-1 ml-1">${e.phone}</p>` : ``}
-                  </div>
-
-                  <div class="pt-4">
-                    <button id="form-next" type="button"
-                      class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center">
-                      ${t("next")} ${icon("arrow-right","ml-2 w-5 h-5")}
-                    </button>
-                  </div>
-                </div>
-              ` : `
-                <div class="space-y-4 pt-4 animate-slide-in-right">
-                  <label class="block">
-                    <span class="text-gray-700 font-medium mb-1 block">${t("formLocation")}</span>
-                    <div class="relative">
-                      <span class="absolute left-3 top-3 text-gray-400">${icon("map-pin","w-5 h-5")}</span>
-                      <select id="sel-lga"
-                        class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none appearance-none">
-                        ${lgaOptions}
-                      </select>
-                    </div>
-                  </label>
-
-                  <label class="block">
-                    <span class="text-gray-700 font-medium mb-1 block">${t("formMineral")}</span>
-                    <div class="relative">
-                      <span class="absolute left-3 top-3 text-gray-400">${icon("pickaxe","w-5 h-5")}</span>
-                      <select id="sel-mineral"
-                        class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none appearance-none">
-                        ${mineralOptions}
-                      </select>
-                    </div>
-                  </label>
-
-                  <label class="block">
-                    <span class="text-gray-700 font-medium mb-1 block">${t("formPhoto")}</span>
-
-                    <input id="file-photo" type="file" accept="image/*" class="hidden" />
-                    <button id="photo-trigger" type="button"
-                      class="w-full border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 cursor-pointer transition-colors group">
-                      <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-emerald-100 transition-colors">
-                        <span class="text-gray-400 group-hover:text-emerald-600">${icon("camera","w-6 h-6")}</span>
-                      </div>
-                      <span class="text-sm ${d.photoName ? "text-emerald-700 font-semibold" : "text-gray-500"} group-hover:text-emerald-600">
-                        ${d.photoName ? escapeHtml(d.photoName) : "Tap to take photo / Saka hoto"}
-                      </span>
-                    </button>
-                  </label>
-
-                  <div class="flex gap-3 pt-4">
-                    <button id="form-prev" type="button"
-                      class="w-1/3 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-all">
-                      ${t("prev")}
-                    </button>
-                    <button id="form-submit" type="button" ${state.formLoading ? "disabled" : ""}
-                      class="w-2/3 bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed">
-                      ${state.formLoading ? icon("loader-2","animate-spin w-5 h-5") : t("submit")}
-                    </button>
-                  </div>
-                </div>
-              `
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    // --- Render: Generated Document ---
-    function renderGeneratedDocument(data) {
-      const isLicense = data.type === "license";
-      return `
-        <div class="max-w-md mx-auto p-4 animate-fade-in-up flex flex-col items-center">
-          <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 animate-bounce-short">
-            ${icon("check-circle","w-10 h-10")}
-          </div>
-
-          <h2 class="text-2xl font-bold text-emerald-900 mb-6">${t("success")}</h2>
-
-          <div class="w-full relative overflow-hidden shadow-2xl rounded-xl border ${isLicense ? "aspect-[1/1.4] bg-white" : "aspect-[1.58/1] bg-emerald-800"}">
-            <div class="absolute inset-0 opacity-10 pointer-events-none">
-              <div class="absolute -top-10 -right-10 w-40 h-40 bg-yellow-400 rounded-full blur-3xl"></div>
-              <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-400 rounded-full blur-3xl"></div>
-            </div>
-
-            ${
-              isLicense ? `
-                <div class="h-full p-6 flex flex-col border-8 border-double border-yellow-600/30">
-                  <div class="text-center border-b-2 border-gray-100 pb-4 mb-4">
-                    <div class="w-12 h-12 bg-emerald-900 mx-auto rounded-full flex items-center justify-center mb-2">
-                      ${icon("pickaxe","text-yellow-400 w-6 h-6")}
-                    </div>
-                    <h3 class="text-lg font-serif font-bold text-emerald-900 uppercase tracking-widest">${t("yobeState")}</h3>
-                    <p class="text-xs text-yellow-600 font-bold uppercase tracking-widest">Mining Commission</p>
-                  </div>
-
-                  <div class="flex-1 text-center space-y-4">
-                    <h1 class="text-xl font-serif font-bold text-gray-800">${t("licenseCert")}</h1>
-                    <div class="text-sm text-gray-500">Issued To / An Ba:</div>
-                    <div class="text-xl font-bold text-emerald-800 font-serif border-b border-dashed border-gray-300 pb-1">${escapeHtml(data.name)}</div>
-
-                    <div class="grid grid-cols-2 gap-4 text-left mt-6">
-                      <div>
-                        <div class="text-xs text-gray-500 uppercase">Category</div>
-                        <div class="font-bold text-gray-800">${escapeHtml(data.mineral)}</div>
-                      </div>
-                      <div>
-                        <div class="text-xs text-gray-500 uppercase">LGA</div>
-                        <div class="font-bold text-gray-800">${escapeHtml(data.lga)}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="mt-auto pt-6 border-t border-gray-100 flex justify-between items-end">
-                    <div class="text-center">
-                      <div class="w-16 h-8 border-b border-gray-400 mb-1"></div>
-                      <div class="text-[10px] uppercase text-gray-400">Commissioner Sign</div>
-                    </div>
-                    <div class="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center border-2 border-yellow-400 border-dashed">
-                      <span class="text-[10px] font-bold text-yellow-700">OFFICIAL</span>
-                    </div>
-                  </div>
-                </div>
-              ` : `
-                <div class="h-full p-5 text-white flex flex-col relative z-10">
-                  <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-center gap-2">
-                      <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/20">
-                        ${icon("pickaxe","w-5 h-5 text-yellow-400")}
-                      </div>
-                      <div>
-                        <h3 class="text-[10px] font-bold uppercase tracking-wider opacity-80">${t("yobeState")}</h3>
-                        <h2 class="text-sm font-bold leading-none">${t("artisanID")}</h2>
-                      </div>
-                    </div>
-                    <img alt="QR"
-                      class="w-10 h-10 bg-white p-1 rounded"
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.name)}" />
-                  </div>
-
-                  <div class="flex gap-4 items-center">
-                    <div class="w-20 h-24 bg-gray-200 rounded-lg overflow-hidden border-2 border-yellow-400 shadow-md flex items-center justify-center">
-                      ${icon("user","w-14 h-14 text-gray-400")}
-                    </div>
-
-                    <div class="space-y-1">
-                      <div>
-                        <div class="text-[10px] text-emerald-200 uppercase">${t("formName")}</div>
-                        <div class="font-bold text-lg leading-tight">${escapeHtml(data.name)}</div>
-                      </div>
-                      <div>
-                        <div class="text-[10px] text-emerald-200 uppercase">${t("idNumber")}</div>
-                        <div class="font-mono text-yellow-400 tracking-wider">${escapeHtml(data.idNumber)}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="mt-auto flex justify-between items-end pt-2">
-                    <div>
-                      <div class="text-[10px] text-emerald-200 uppercase">${t("miningType")}</div>
-                      <div class="font-medium text-sm flex items-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-yellow-400"></span> ${escapeHtml(data.mineral)}
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-[10px] text-emerald-200 uppercase">${t("validUntil")}</div>
-                      <div class="font-medium text-sm">Dec 2026</div>
-                    </div>
-                  </div>
-                </div>
-              `
-            }
-          </div>
-
-          <div class="mt-8 w-full space-y-3">
-            <button id="btn-download" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center hover:bg-black transition-colors">
-              ${t("download")}
-            </button>
-            <button id="btn-back-portal" class="w-full bg-gray-100 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors">
-              ${t("viewDashboard")}
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- Render: Admin Login ---
-    function renderAdminLogin() {
-      return `
-        <div class="min-h-[70vh] flex items-center justify-center p-4">
-          <div class="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full animate-fade-in-up border border-gray-100">
-            <div class="text-center mb-6">
-              <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                ${icon("lock","w-8 h-8 text-emerald-700")}
-              </div>
-              <h2 class="text-2xl font-bold text-gray-900">${t("adminLogin")}</h2>
-              <p class="text-gray-500 text-sm mt-1">Authorized personnel only</p>
-            </div>
-
-            <form id="admin-form" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Staff ID / Access Code</label>
-                <input id="admin-pin" type="password" required
-                  class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  placeholder="••••••" />
-              </div>
-
-              <button id="admin-submit" type="submit"
-                class="w-full bg-emerald-800 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-emerald-900 transition-colors flex items-center justify-center">
-                ${t("portalEntry")}
-              </button>
-            </form>
-
-            <div id="admin-loading" class="hidden mt-4 text-center text-sm text-gray-500">
-              <span class="inline-flex items-center gap-2">${icon("loader-2","animate-spin w-4 h-4")} Signing in...</span>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- Render: Admin Dashboard ---
-    function statusPill(status) {
-      const cls =
-        status === "Approved" ? "bg-green-100 text-green-800" :
-        status === "Rejected" ? "bg-red-100 text-red-800" :
-        "bg-yellow-100 text-yellow-800";
-
-      const dot =
-        status === "Approved" ? "bg-green-500" :
-        status === "Rejected" ? "bg-red-500" :
-        "bg-yellow-500";
-
-      return `
-        <span class="flex items-center w-fit px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}">
-          <span class="w-1.5 h-1.5 rounded-full mr-1.5 ${dot}"></span>
-          ${status}
-        </span>
-      `;
-    }
-
-    function renderAdminDashboard() {
-      const q = (state.adminSearch || "").toLowerCase().trim();
-      const rows = mockApplications
-        .filter(app => {
-          if (!q) return true;
-          return String(app.id).includes(q) ||
-                 app.name.toLowerCase().includes(q) ||
-                 app.type.toLowerCase().includes(q) ||
-                 app.location.toLowerCase().includes(q) ||
-                 app.status.toLowerCase().includes(q);
-        })
-        .map(app => `
-          <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
-            <td class="px-6 py-4 font-mono text-gray-900">#${app.id}</td>
-            <td class="px-6 py-4 font-medium text-gray-900">${escapeHtml(app.name)}</td>
-            <td class="px-6 py-4">
-              <span class="px-2 py-1 rounded-full text-xs font-medium ${app.type === "Artisan" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}">
-                ${escapeHtml(app.type)}
-              </span>
-            </td>
-            <td class="px-6 py-4">${escapeHtml(app.location)}</td>
-            <td class="px-6 py-4">${statusPill(app.status)}</td>
-            <td class="px-6 py-4 text-right space-x-2">
-              ${
-                app.status === "Pending"
-                  ? `
-                    <button class="text-green-600 hover:text-green-900 font-medium text-xs border border-green-200 hover:bg-green-50 px-3 py-1 rounded transition-colors">
-                      ${t("approve")}
-                    </button>
-                    <button class="text-red-600 hover:text-red-900 font-medium text-xs border border-red-200 hover:bg-red-50 px-3 py-1 rounded transition-colors">
-                      ${t("reject")}
-                    </button>
-                  `
-                  : `<button class="text-gray-400 cursor-not-allowed text-xs font-medium px-3 py-1">Archived</button>`
-              }
-            </td>
-          </tr>
-        `).join("");
-
-      return `
-        <div class="min-h-screen bg-gray-50 pb-12 animate-fade-in-up">
-          <div class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-[72px] z-30 shadow-sm">
-            <h2 class="text-xl font-bold text-emerald-900 flex items-center">
-              ${icon("activity","w-5 h-5 mr-2 text-emerald-600")}
-              ${t("dashboard")}
-            </h2>
-            <div class="flex items-center space-x-4">
-              <div class="hidden md:flex items-center space-x-2 text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span>System Online</span>
-              </div>
-              <button id="admin-logout"
-                class="flex items-center text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium">
-                ${icon("log-out","w-4 h-4 mr-1.5")} ${t("logout")}
-              </button>
-            </div>
-          </div>
-
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-500">${t("totalRevenue")}</p>
-                  <h3 class="text-2xl font-bold text-gray-900 mt-1">₦ 45.2M</h3>
-                  <p class="text-xs text-green-600 mt-1 flex items-center">
-                    ${icon("trending-up","w-3 h-3 mr-1")} +12% this month
-                  </p>
-                </div>
-                <div class="p-3 bg-blue-50 rounded-lg text-blue-600">
-                  ${icon("bar-chart-3","w-6 h-6")}
-                </div>
-              </div>
-
-              <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-500">${t("activeMiners")}</p>
-                  <h3 class="text-2xl font-bold text-gray-900 mt-1">1,240</h3>
-                  <p class="text-xs text-gray-500 mt-1">Across 8 LGAs</p>
-                </div>
-                <div class="p-3 bg-emerald-50 rounded-lg text-emerald-600">
-                  ${icon("users","w-6 h-6")}
-                </div>
-              </div>
-
-              <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-500">${t("pendingApps")}</p>
-                  <h3 class="text-2xl font-bold text-gray-900 mt-1">15</h3>
-                  <p class="text-xs text-orange-600 mt-1 font-medium">Needs Attention</p>
-                </div>
-                <div class="p-3 bg-orange-50 rounded-lg text-orange-600">
-                  ${icon("alert-circle","w-6 h-6")}
-                </div>
-              </div>
-
-              <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-500">${t("licensesIssued")}</p>
-                  <h3 class="text-2xl font-bold text-gray-900 mt-1">342</h3>
-                  <p class="text-xs text-gray-500 mt-1">Year to date</p>
-                </div>
-                <div class="p-3 bg-purple-50 rounded-lg text-purple-600">
-                  ${icon("file-check","w-6 h-6")}
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div class="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
-                <h3 class="text-lg font-bold text-gray-800">${t("recentActivity")}</h3>
-                <div class="relative w-full md:w-64">
-                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">${icon("search","w-4 h-4")}</span>
-                  <input id="admin-search" type="text" placeholder="Search records..."
-                    value="${escapeHtml(state.adminSearch)}"
-                    class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                </div>
-              </div>
-
-              <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-500">
-                  <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th class="px-6 py-3">Applicant ID</th>
-                      <th class="px-6 py-3">Name</th>
-                      <th class="px-6 py-3">Type</th>
-                      <th class="px-6 py-3">Location</th>
-                      <th class="px-6 py-3">Status</th>
-                      <th class="px-6 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${rows || `<tr><td class="px-6 py-6 text-gray-400" colspan="6">No matching results.</td></tr>`}
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-                <span class="text-xs text-gray-500">Showing ${Math.min(5, mockApplications.length)} of 124 entries</span>
-                <div class="flex space-x-2">
-                  <button class="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-medium text-gray-600 hover:bg-gray-50">Previous</button>
-                  <button class="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-medium text-gray-600 hover:bg-gray-50">Next</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- Render: Coming Soon ---
-    function renderComingSoon() {
-      return `
-        <div class="p-12 text-center min-h-[50vh] flex items-center justify-center">
-          <div class="bg-white rounded-2xl p-8 shadow-xl max-w-sm mx-auto border border-gray-100">
-            ${icon("loader-2","w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4")}
-            <h3 class="text-lg font-bold">Coming Soon</h3>
-            <p class="text-gray-500 mb-6">This feature is being updated.</p>
-            <button id="coming-back" class="text-emerald-600 font-bold hover:underline">Go Back</button>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- Main render ---
-    function renderMain() {
-      if (state.view === "landing") return renderLanding();
-      if (state.view === "miner-portal") return renderMinerPortal();
-      if (state.view === "artisan" || state.view === "license") return renderRegistrationForm(state.view);
-      if (state.view === "success" && state.completedData) return renderGeneratedDocument(state.completedData);
-      if (state.view === "admin-login") return renderAdminLogin();
-      if (state.view === "admin-dashboard") return renderAdminDashboard();
-      if (state.view === "idcard" || state.view === "renew") return renderComingSoon();
-      return renderLanding();
-    }
-
-    function render() {
-      appEl.innerHTML = `
-        ${renderHeader()}
-        <main class="flex-grow">${renderMain()}</main>
-        ${renderFooter()}
-      `;
-
-      // Render lucide icons
-      lucide.createIcons();
-
-      // Wire header events
-      const langBtn = document.getElementById("lang-toggle");
-      if (langBtn) langBtn.onclick = () => setLang(state.lang === "en" ? "ha" : "en");
-
-      const navBrand = document.getElementById("nav-home-brand");
-      if (navBrand) navBrand.onclick = () => navigate("landing");
-
-      const navHome = document.getElementById("nav-home");
-      if (navHome) navHome.onclick = () => navigate("landing");
-
-      const navServices = document.getElementById("nav-services");
-      if (navServices) navServices.onclick = () => navigate("miner-portal");
-
-      const navContact = document.getElementById("nav-contact");
-      if (navContact) navContact.onclick = () => smoothToBottom();
-
-      // Wire page-specific events
-      wireViewEvents();
-    }
-
-    function wireViewEvents() {
-      // Landing
-      const btnPortal = document.getElementById("btn-portal");
-      if (btnPortal) btnPortal.onclick = () => navigate("miner-portal");
-
-      const btnAdmin = document.getElementById("btn-admin");
-      if (btnAdmin) btnAdmin.onclick = () => navigate("admin-login");
-
-      // Miner portal
-      const btnArt = document.getElementById("btn-artisan");
-      if (btnArt) btnArt.onclick = () => navigate("artisan");
-
-      const btnLic = document.getElementById("btn-license");
-      if (btnLic) btnLic.onclick = () => navigate("license");
-
-      const btnId = document.getElementById("btn-idcard");
-      if (btnId) btnId.onclick = () => navigate("idcard");
-
-      const btnRenew = document.getElementById("btn-renew");
-      if (btnRenew) btnRenew.onclick = () => navigate("renew");
-
-      // Coming Soon
-      const comingBack = document.getElementById("coming-back");
-      if (comingBack) comingBack.onclick = () => navigate("miner-portal");
-
-      // Registration form
-      const formBack = document.getElementById("form-back");
-      if (formBack) formBack.onclick = () => navigate("miner-portal");
-
-      const inpName = document.getElementById("inp-name");
-      if (inpName) {
-        inpName.addEventListener("input", (e) => {
-          state.formData.name = e.target.value;
-          if (state.formErrors.name) { state.formErrors.name = null; render(); }
-        });
+    (function() {
+      // --- Assets ---
+      const ASSETS = {
+        coatOfArms: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Coat_of_arms_of_Nigeria.svg/1200px-Coat_of_arms_of_Nigeria.svg.png",
+        miningLogo: "https://cdn-icons-png.flaticon.com/512/2592/2592175.png",
+        mapBg: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Yobe_State_in_Nigeria.svg/1200px-Yobe_State_in_Nigeria.svg.png" // Simplified map placeholder
+      };
+
+      // --- Translations ---
+      const translations = {
+        en: {
+          appTitle: "Yobe State Mining Company",
+          subtitle: "Regulating & Empowering Mining Activities",
+          welcome: "Welcome",
+          start: "Start Here",
+          portalEntry: "Enter Portal",
+          adminLogin: "Staff Login",
+          home: "Home",
+          services: "Services",
+          contact: "Contact",
+          
+          // Forms
+          applyLicense: "Apply for License",
+          applyLicenseDesc: "For companies and large scale mining.",
+          registerArtisan: "Register as Artisan",
+          registerArtisanDesc: "For individual local miners.",
+          idCard: "Get Miner ID Card",
+          renew: "Renew Papers",
+          
+          formName: "Full Name",
+          formCompany: "Company Name",
+          formRC: "RC Number",
+          formPhone: "Phone Number",
+          formLocation: "Mining Location / LGA",
+          formMineral: "Mineral Type",
+          formPhoto: "Upload Photo",
+          formCAC: "CAC Certificate",
+          
+          submit: "Submit Application",
+          processing: "Processing...",
+          success: "Successful!",
+          download: "Download/Save",
+          downloadID: "Download ID Card",
+          downloadCert: "Download Certificate",
+          back: "Back",
+          
+          // Validation
+          companySuffixError: "Company name must end with LTD, Limited, PLC, Enterprise, LLC, Venture, or Company.",
+          phoneError: "Phone number must be exactly 11 digits.",
+          required: "This field is required.",
+          
+          // Dashboard
+          dashboard: "Executive Dashboard",
+          mdDashboard: "MD Command Center",
+          logout: "Logout",
+          pendingApps: "Pending Applications",
+          totalRevenue: "Total Revenue",
+          activeMiners: "Active Miners",
+          licensesIssued: "Licenses Issued",
+          approve: "Approve",
+          reject: "Reject",
+          viewDocs: "View Docs",
+          recentActivity: "Recent Activity",
+
+          // Certs
+          certTitle: "CERTIFICATE OF MINING",
+          certBody: "This is to certify that the company listed below has been duly registered and authorized to carry out mining activities within Yobe State in accordance with the state regulations.",
+          signature: "Hon. Commissioner",
+          validUntil: "Valid Until",
+          issuedOn: "Issued On",
+          
+          footerDesc: "Official platform for regulating mining activities within Yobe State, ensuring safety, compliance, and economic growth.",
+          quickLinks: "Quick Links",
+          contactUs: "Contact Us"
+        },
+        ha: {
+          appTitle: "Kamfanin Hakar Ma'adinai na Jihar Yobe",
+          subtitle: "Rungumar Ayyukan Hakar Ma'adinai",
+          welcome: "Barka da zuwa",
+          start: "Fara Anan",
+          portalEntry: "Shiga Shafin",
+          adminLogin: "Shiga na Ma'aikata",
+          home: "Gida",
+          services: "Ayyuka",
+          contact: "Tuntube Mu",
+
+          applyLicense: "Nemi Lasisi",
+          applyLicenseDesc: "Domin manyan kamfanoni.",
+          registerArtisan: "Yi Rajistar 'Yan Haka",
+          registerArtisanDesc: "Domin kananan masu hakar ma'adinai.",
+          idCard: "Karbi Katin Shaida",
+          renew: "Sabunta Takardu",
+
+          formName: "Cikakken Suna",
+          formCompany: "Sunan Kamfani",
+          formRC: "Lambar RC",
+          formPhone: "Lambar Waya",
+          formLocation: "Wurin Haka / Karamar Hukuma",
+          formMineral: "Nau'in Ma'adani",
+          formPhoto: "Saka Hoto",
+          formCAC: "Takardar CAC",
+
+          submit: "Aika Bukata",
+          processing: "Ana Aiki...",
+          success: "An Yi Nasara!",
+          download: "Sauke/Ajiye",
+          downloadID: "Sauke Katin ID",
+          downloadCert: "Sauke Takardar Lasisi",
+          back: "Baya",
+
+          companySuffixError: "Sunan kamfani dole ya kare da LTD, Limited, PLC, da sauransu.",
+          phoneError: "Lambar waya dole ta kasance lamba 11.",
+          required: "Ana bukatar wannan.",
+
+          dashboard: "Dashboard na Shugabanni",
+          mdDashboard: "Cibiyar MD",
+          logout: "Fita",
+          pendingApps: "Bukatu masu Jira",
+          totalRevenue: "Jimlar Kudin Shiga",
+          activeMiners: "Masu Haka Masu Aiki",
+          licensesIssued: "Lasisi da aka Bayar",
+          approve: "Amince",
+          reject: "Kiyi",
+          viewDocs: "Duba Takardu",
+          recentActivity: "Ayyukan Kwanan Nan",
+
+          certTitle: "TAKARDAR LASISI",
+          certBody: "Wannan takardar shaida ce cewa kamfanin da ke kasa ya yi rajista kuma an ba shi izinin gudanar da ayyukan hakar ma'adinai a Jihar Yobe.",
+          signature: "Kwamishina",
+          validUntil: "Yana aiki har",
+          issuedOn: "An bayar ranar",
+
+          footerDesc: "Shafin hukuma na kula da ayyukan hakar ma'adinai a Jihar Yobe, tabbatar da tsaro, bin doka, da ci gaban tattalin arziki.",
+          quickLinks: "Hanyoyi Masu Sauki",
+          contactUs: "Tuntube Mu"
+        }
+      };
+
+      const LGAs = ["Damaturu","Potiskum","Nguru","Gashua","Geidam","Buni Yadi","Fika","Nangere", "Jakusko", "Bade", "Bursari", "Fune", "Gulani", "Gujba", "Karasuwa", "Machina", "Tarmuwa", "Yusufari"];
+
+      const initialApplications = [
+        { id: 101, name: "Ibrahim Musa", type: "Artisan", location: "Damaturu", mineral: "Gold", date: "2023-10-24", status: "Pending", photoURL: null },
+        { id: 102, name: "Yobe Gold Corp LTD", type: "License", location: "Fika", mineral: "Gypsum", rcNumber: "RC44211", date: "2023-10-25", status: "Pending", photoURL: null },
+        { id: 103, name: "Fatima Sani", type: "Artisan", location: "Nguru", mineral: "Kaolin", date: "2023-10-23", status: "Approved", photoURL: null },
+        { id: 104, name: "Desert Sands Ltd", type: "License", location: "Geidam", mineral: "Limestone", rcNumber: "RC99882", date: "2023-10-22", status: "Rejected", photoURL: null },
+        { id: 105, name: "Aliyu Bello", type: "Artisan", location: "Potiskum", mineral: "Gold", date: "2023-10-26", status: "Pending", photoURL: null },
+      ];
+
+      // --- State Management ---
+      window.state = {
+        lang: "en",
+        view: "landing", 
+        currentUserRole: null, // 'staff' | 'md' | null
+        isLoading: false,
+        error: null,
+        adminSearch: "",
+        applications: [...initialApplications], // Mutable state
+        previewAppId: null, // For viewing certificate/ID in modal
+        
+        // Form Data
+        formData: {
+          name: "", 
+          companyName: "",
+          rcNumber: "",
+          phone: "",
+          lga: LGAs[0],
+          mineral: "Gypsum",
+          photoURL: null, 
+          cacName: ""     
+        },
+        
+        // Result Data (for newly created applications)
+        generatedId: "",
+        expiryDate: "",
+        issueDate: ""
+      };
+
+      const state = window.state;
+      const t = (key) => translations[state.lang][key] || key;
+      const app = document.getElementById("app");
+
+      // --- Utils ---
+      const formatDate = (date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      const getNextYear = () => {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() + 1);
+        return d;
+      };
+      
+      const setView = (view) => {
+        state.view = view;
+        state.error = null;
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        render();
+      };
+      window.setView = setView; 
+
+      window.toggleLang = function() {
+        state.lang = state.lang === "en" ? "ha" : "en";
+        render();
+      };
+
+      window.scrollToBottom = function() {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
       }
 
-      const inpPhone = document.getElementById("inp-phone");
-      if (inpPhone) {
-        inpPhone.addEventListener("input", (e) => {
-          const val = String(e.target.value || "").replace(/\D/g, "");
-          state.formData.phone = val;
-          e.target.value = val;
-          if (state.formErrors.phone) { state.formErrors.phone = null; render(); }
-        });
+      // --- Form Handlers ---
+      window.handlePhotoUpload = function(event) {
+        const file = event.target.files[0];
+        if (file) {
+          state.formData.photoURL = URL.createObjectURL(file);
+          render(); 
+        }
+      };
+
+      window.handleCACUpload = function(event) {
+        const file = event.target.files[0];
+        if (file) {
+          state.formData.cacName = file.name;
+          render();
+        }
+      };
+
+      window.handleAdminSearch = function(event) {
+        state.adminSearch = event.target.value;
+        render();
       }
 
-      const nextBtn = document.getElementById("form-next");
-      if (nextBtn) {
-        nextBtn.onclick = () => {
-          if (validateStep1()) {
-            state.formStep = 2;
-            render();
-          } else {
-            render();
+      window.handleSort = function(criteria) {
+        // Simple sort implementation
+        if (criteria === 'date') {
+            state.applications.sort((a,b) => new Date(b.date) - new Date(a.date));
+        } else if (criteria === 'status') {
+            state.applications.sort((a,b) => a.status.localeCompare(b.status));
+        }
+        render();
+      }
+
+      // --- Application Logic ---
+      window.viewApplication = function(id) {
+        state.previewAppId = id;
+        render(); // This will trigger the modal
+      }
+
+      window.closePreview = function() {
+        state.previewAppId = null;
+        render();
+      }
+
+      window.updateStatus = function(id, newStatus) {
+        const app = state.applications.find(a => a.id === id);
+        if (app) {
+          app.status = newStatus;
+          // In real app, API call here
+          render();
+        }
+      }
+
+      // --- Validation ---
+      function validateForm(type) {
+        const { name, companyName, rcNumber, phone, photoURL, cacName } = state.formData;
+        const errors = [];
+
+        if (!/^\d{11}$/.test(phone)) {
+          errors.push(t("phoneError"));
+        }
+
+        if (type === 'artisan') {
+          if (!name.trim()) errors.push(t("required"));
+          if (!photoURL) errors.push(t("required"));
+        } 
+        else if (type === 'license') {
+          const validSuffixes = ['ltd', 'limited', 'plc', 'enterprise', 'llc', 'venture', 'company', 'ltd.', 'inc'];
+          const lowerName = companyName.toLowerCase().trim();
+          const hasValidSuffix = validSuffixes.some(suffix => lowerName.endsWith(suffix));
+          
+          if (!companyName.trim() || !hasValidSuffix) {
+            errors.push(t("companySuffixError"));
           }
-        };
+          if (!rcNumber.trim()) errors.push(t("required"));
+          if (!cacName) errors.push(t("required"));
+        }
+
+        return errors;
       }
 
-      const prevBtn = document.getElementById("form-prev");
-      if (prevBtn) prevBtn.onclick = () => { state.formStep = 1; render(); };
-
-      const selLga = document.getElementById("sel-lga");
-      if (selLga) selLga.onchange = (e) => { state.formData.lga = e.target.value; };
-
-      const selMineral = document.getElementById("sel-mineral");
-      if (selMineral) selMineral.onchange = (e) => { state.formData.mineral = e.target.value; };
-
-      const photoTrigger = document.getElementById("photo-trigger");
-      const filePhoto = document.getElementById("file-photo");
-      if (photoTrigger && filePhoto) {
-        photoTrigger.onclick = () => filePhoto.click();
-        filePhoto.onchange = () => {
-          const f = filePhoto.files && filePhoto.files[0];
-          state.formData.photoName = f ? f.name : "";
+      window.submitForm = function(type) {
+        const errors = validateForm(type);
+        if (errors.length > 0) {
+          state.error = errors.join(" ");
           render();
-        };
+          return;
+        }
+
+        state.isLoading = true;
+        render();
+
+        setTimeout(() => {
+          state.isLoading = false;
+          state.generatedId = type === 'artisan' 
+            ? `ART-${Math.floor(100000 + Math.random() * 900000)}` 
+            : `YSM-${state.formData.rcNumber}`;
+          state.issueDate = new Date();
+          state.expiryDate = getNextYear();
+          
+          // Add to applications list for demo purposes
+          const newApp = {
+             id: Math.floor(Math.random() * 10000),
+             name: type === 'artisan' ? state.formData.name : state.formData.companyName,
+             type: type === 'artisan' ? 'Artisan' : 'License',
+             location: state.formData.lga,
+             mineral: state.formData.mineral,
+             date: new Date().toISOString().split('T')[0],
+             status: "Pending",
+             photoURL: state.formData.photoURL,
+             rcNumber: state.formData.rcNumber
+          };
+          state.applications.unshift(newApp);
+
+          setView("success");
+        }, 2000);
+      };
+
+      window.handleAdminLogin = function(e) {
+        e.preventDefault();
+        const input = document.getElementById("admin-pin");
+        const btn = document.getElementById("admin-submit");
+        
+        if (!input.value) return;
+
+        if(btn) btn.innerHTML = t("processing");
+        
+        setTimeout(() => {
+          if (input.value === "3333") {
+             state.currentUserRole = 'md';
+             setView('md-dashboard');
+          } else {
+             state.currentUserRole = 'staff';
+             setView('admin-dashboard');
+          }
+        }, 1000);
+      }
+      
+      window.logout = function() {
+        state.currentUserRole = null;
+        setView('landing');
       }
 
-      const submitBtn = document.getElementById("form-submit");
-      if (submitBtn) {
-        submitBtn.onclick = () => {
-          if (state.formLoading) return;
-          state.formLoading = true;
-          render();
+      // --- Download Function ---
+      window.downloadElement = async function(elementId, fileName) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        try {
+          const canvas = await html2canvas(element, { 
+            scale: 2, 
+            useCORS: true, 
+            backgroundColor: null 
+          });
+          const link = document.createElement('a');
+          link.download = `${fileName}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+        } catch (err) {
+          console.error("Download failed", err);
+          alert("Could not generate image. Please try again.");
+        }
+      };
 
-          // simulate API call
-          setTimeout(() => {
-            state.formLoading = false;
-
-            const idNumber = `YS-24-${Math.floor(Math.random() * 9000) + 1000}`;
-            state.completedData = {
-              type: state.view, // artisan or license
-              name: state.formData.name.trim(),
-              phone: state.formData.phone.trim(),
-              lga: state.formData.lga,
-              mineral: state.formData.mineral,
-              photoName: state.formData.photoName,
-              idNumber
-            };
-            state.view = "success";
-            render();
-          }, 2000);
-        };
+      // --- Components ---
+      function Icon(name, className="w-5 h-5") {
+        return `<i data-lucide="${name}" class="${className}"></i>`;
       }
 
-      // Success buttons
-      const backPortal = document.getElementById("btn-back-portal");
-      if (backPortal) backPortal.onclick = () => navigate("miner-portal");
+      function renderHeader() {
+        return `
+          <header class="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white p-4 shadow-lg sticky top-0 z-50">
+            <div class="flex justify-between items-center max-w-6xl mx-auto">
+              <div class="flex items-center space-x-3 cursor-pointer group" onclick="setView('landing')">
+                <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center shadow-md border-2 border-white group-hover:scale-105 transition-transform">
+                  ${Icon("pickaxe","text-emerald-900 w-6 h-6")}
+                </div>
+                <div>
+                  <h1 class="font-bold text-sm md:text-lg leading-tight tracking-wide">${t("appTitle")}</h1>
+                  <p class="text-[10px] md:text-xs text-emerald-200 uppercase tracking-wider hidden md:block">${t("subtitle")}</p>
+                </div>
+              </div>
 
-      const downloadBtn = document.getElementById("btn-download");
-      if (downloadBtn) {
-        downloadBtn.onclick = () => {
-          alert("Demo: hook this to real PDF/image generation (server-side or canvas).");
-        };
+              <div class="flex items-center space-x-4">
+                <nav class="hidden md:flex space-x-6 text-sm font-medium text-emerald-100">
+                  <button onclick="setView('landing')" class="hover:text-white hover:underline">${t("home")}</button>
+                  <button onclick="setView('miner-portal')" class="hover:text-white hover:underline">${t("services")}</button>
+                  <button onclick="scrollToBottom()" class="hover:text-white hover:underline">${t("contact")}</button>
+                </nav>
+
+                <button onclick="toggleLang()" class="flex items-center bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-all text-xs md:text-sm font-medium border border-white/20 backdrop-blur-sm">
+                  ${Icon("languages","w-4 h-4 mr-2")}
+                  ${state.lang === "en" ? "HA" : "EN"}
+                </button>
+              </div>
+            </div>
+          </header>
+        `;
       }
 
-      // Admin login
-      const adminForm = document.getElementById("admin-form");
-      if (adminForm) {
-        adminForm.onsubmit = (e) => {
-          e.preventDefault();
-          const loadingRow = document.getElementById("admin-loading");
-          const submit = document.getElementById("admin-submit");
-          if (loadingRow) loadingRow.classList.remove("hidden");
-          if (submit) submit.disabled = true;
+      function renderFooter() {
+        return `
+          <footer class="bg-emerald-900 text-white pt-12 pb-6 mt-auto">
+            <div class="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+              <div>
+                <div class="flex items-center space-x-2 mb-4">
+                  ${Icon("pickaxe","text-yellow-400 w-6 h-6")}
+                  <span class="font-bold text-lg">${t("appTitle")}</span>
+                </div>
+                <p class="text-emerald-200 text-sm leading-relaxed mb-4">${t("footerDesc")}</p>
+              </div>
 
-          setTimeout(() => {
-            if (loadingRow) loadingRow.classList.add("hidden");
-            if (submit) submit.disabled = false;
-            navigate("admin-dashboard");
-          }, 1500);
-        };
+              <div>
+                <h3 class="font-bold text-yellow-400 mb-4 uppercase tracking-wider text-sm">${t("quickLinks")}</h3>
+                <ul class="space-y-2 text-emerald-200 text-sm">
+                  <li><button onclick="setView('license-form')" class="hover:text-white transition-colors">Apply for License</button></li>
+                  <li><button onclick="setView('status-check')" class="hover:text-white transition-colors">Check Status</button></li>
+                  <li><button onclick="setView('renew-check')" class="hover:text-white transition-colors">Renewals</button></li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 class="font-bold text-yellow-400 mb-4 uppercase tracking-wider text-sm">${t("contactUs")}</h3>
+                <ul class="space-y-3 text-emerald-200 text-sm">
+                  <li class="flex items-start space-x-3">
+                    ${Icon("map-pin","w-5 h-5 text-yellow-400 shrink-0 mt-0.5")}
+                    <span>No. 12 Bukar Abba Ibrahim Way, Damaturu, Yobe State.</span>
+                  </li>
+                  <li class="flex items-center space-x-3">
+                    ${Icon("phone","w-5 h-5 text-yellow-400 shrink-0")}
+                    <span>+234 800 MINING YB</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="border-t border-emerald-800 pt-6 text-center text-xs text-emerald-400">
+              &copy; ${new Date().getFullYear()} Yobe State Mining Company. All rights reserved.
+            </div>
+          </footer>
+        `;
       }
 
-      // Admin dashboard
-      const adminLogout = document.getElementById("admin-logout");
-      if (adminLogout) adminLogout.onclick = () => navigate("landing");
+      function renderLanding() {
+        return `
+          <div class="animate-fade-in-up">
+            <div class="relative bg-emerald-900 text-white overflow-hidden">
+              <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1576082989508-e16109968803?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-20"></div>
+              <div class="absolute inset-0 bg-gradient-to-r from-emerald-900/90 to-emerald-800/80"></div>
 
-      const adminSearch = document.getElementById("admin-search");
-      if (adminSearch) {
-        adminSearch.addEventListener("input", (e) => {
-          state.adminSearch = e.target.value;
-          render();
-        });
+              <div class="relative max-w-6xl mx-auto px-6 py-24 md:py-32 flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                  <div class="inline-block px-3 py-1 bg-yellow-400 text-emerald-900 text-xs font-bold rounded-full mb-4 uppercase tracking-wider">
+                    Official Portal
+                  </div>
+                  <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                    ${t("subtitle")}
+                  </h1>
+                  <p class="text-emerald-100 text-lg mb-8 max-w-lg">
+                    Streamlining mining operations in Yobe State through digital innovation. Register, apply, and monitor efficiently.
+                  </p>
+
+                  <div class="flex flex-col sm:flex-row gap-4">
+                    <button onclick="setView('miner-portal')" class="bg-yellow-400 text-emerald-900 px-8 py-4 rounded-xl font-bold hover:bg-yellow-300 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center">
+                      ${t("portalEntry")} ${Icon("arrow-right","ml-2 w-5 h-5")}
+                    </button>
+                    <button onclick="setView('admin-login')" class="bg-transparent border-2 border-white/30 text-white px-8 py-4 rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center">
+                      ${Icon("lock","mr-2 w-4 h-4")} ${t("adminLogin")}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="md:w-1/2 flex justify-center">
+                  <!-- Stats or Features -->
+                  <div class="bg-emerald-800/80 backdrop-blur-sm p-6 rounded-2xl border border-emerald-600/50 shadow-2xl max-w-sm">
+                     <div class="flex items-center gap-4 mb-4 border-b border-white/10 pb-4">
+                        <div class="bg-white/10 p-3 rounded-full">${Icon("shield-check", "text-yellow-400 w-6 h-6")}</div>
+                        <div>
+                           <div class="font-bold text-lg">Fully Digital</div>
+                           <div class="text-xs text-emerald-200">Secure & Fast Processing</div>
+                        </div>
+                     </div>
+                     <div class="flex items-center gap-4 mb-4 border-b border-white/10 pb-4">
+                        <div class="bg-white/10 p-3 rounded-full">${Icon("search", "text-yellow-400 w-6 h-6")}</div>
+                        <div>
+                           <div class="font-bold text-lg">Instant Verification</div>
+                           <div class="text-xs text-emerald-200">Scan QR to verify licenses</div>
+                        </div>
+                     </div>
+                     <div class="flex items-center gap-4">
+                        <div class="bg-white/10 p-3 rounded-full">${Icon("download", "text-yellow-400 w-6 h-6")}</div>
+                        <div>
+                           <div class="font-bold text-lg">E-Certificates</div>
+                           <div class="text-xs text-emerald-200">Download instantly</div>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white py-12 border-b border-gray-100">
+              <div class="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                <div>
+                  <div class="text-3xl md:text-4xl font-bold text-emerald-800 mb-1">2,500+</div>
+                  <div class="text-gray-500 text-sm uppercase tracking-wide">Registered Miners</div>
+                </div>
+                <div>
+                  <div class="text-3xl md:text-4xl font-bold text-emerald-800 mb-1">150+</div>
+                  <div class="text-gray-500 text-sm uppercase tracking-wide">Companies</div>
+                </div>
+                <div>
+                  <div class="text-3xl md:text-4xl font-bold text-emerald-800 mb-1">17</div>
+                  <div class="text-gray-500 text-sm uppercase tracking-wide">LGAs Covered</div>
+                </div>
+                <div>
+                  <div class="text-3xl md:text-4xl font-bold text-emerald-800 mb-1">98%</div>
+                  <div class="text-gray-500 text-sm uppercase tracking-wide">Compliance Rate</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
       }
-    }
 
-    // Simple HTML escaping to keep template safe
-    function escapeHtml(str) {
-      return String(str ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
+      function renderMinerPortal() {
+        return `
+          <div class="animate-fade-in-up min-h-[60vh]">
+            <div class="relative bg-emerald-50 pb-8 rounded-b-[2.5rem] overflow-hidden">
+              <div class="absolute top-0 left-0 w-full h-32 bg-emerald-600 rounded-b-[50%] scale-x-150 -translate-y-16 opacity-20"></div>
 
-    // Boot
-    render();
+              <div class="max-w-md mx-auto px-6 pt-6 text-center relative z-10">
+                <h2 class="text-2xl font-bold text-emerald-900 mb-2">${t("welcome")}, Miner!</h2>
+                <p class="text-gray-600 mb-6">Select an option below to begin.</p>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <button onclick="setView('artisan-form')" class="bg-white p-4 rounded-2xl shadow-md border-b-4 border-yellow-400 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center gap-2 group hover:bg-yellow-50">
+                    <div class="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      ${Icon("user","w-6 h-6")}
+                    </div>
+                    <span class="font-bold text-sm text-gray-800 leading-tight">${t("registerArtisan")}</span>
+                  </button>
+
+                  <button onclick="setView('license-form')" class="bg-white p-4 rounded-2xl shadow-md border-b-4 border-emerald-500 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center gap-2 group hover:bg-emerald-50">
+                    <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      ${Icon("scroll-text","w-6 h-6")}
+                    </div>
+                    <span class="font-bold text-sm text-gray-800 leading-tight">${t("applyLicense")}</span>
+                  </button>
+
+                  <button onclick="setView('status-check')" class="bg-white p-4 rounded-2xl shadow-md border-b-4 border-blue-400 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center gap-2 group hover:bg-blue-50">
+                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      ${Icon("credit-card","w-6 h-6")}
+                    </div>
+                    <span class="font-bold text-sm text-gray-800 leading-tight">${t("idCard")}</span>
+                  </button>
+
+                  <button onclick="setView('renew-check')" class="bg-white p-4 rounded-2xl shadow-md border-b-4 border-orange-400 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center gap-2 group hover:bg-orange-50">
+                    <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      ${Icon("refresh-cw","w-6 h-6")}
+                    </div>
+                    <span class="font-bold text-sm text-gray-800 leading-tight">${t("renew")}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="max-w-md mx-auto px-6 mt-8">
+               <button onclick="setView('landing')" class="w-full text-center text-gray-500 text-sm hover:text-emerald-700 font-medium">
+                  &larr; ${t("back")} ${t("home")}
+               </button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderInput(label, id, type="text", placeholder="", value="", oninput="") {
+        return `
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">${label}</label>
+            <input type="${type}" id="${id}" 
+              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
+              placeholder="${placeholder}"
+              value="${value}"
+              oninput="${oninput}"
+            >
+          </div>
+        `;
+      }
+
+      function renderSelect(label, id, options, selectedValue, onchange) {
+        return `
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">${label}</label>
+            <div class="relative">
+              <select id="${id}" onchange="${onchange}"
+                class="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none appearance-none"
+              >
+                ${options.map(opt => `<option value="${opt}" ${opt === selectedValue ? 'selected' : ''}>${opt}</option>`).join('')}
+              </select>
+              <div class="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+                ${Icon("chevron-down", "w-5 h-5")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderArtisanForm() {
+        return `
+          <div class="max-w-xl w-full mx-auto px-4 py-8 animate-slide-in-right">
+            <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
+            
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div class="bg-yellow-500 p-4 text-emerald-900">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                  ${Icon("pickaxe")} ${t("registerArtisan")}
+                </h2>
+              </div>
+              
+              <div class="p-6">
+                ${state.error ? `<div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">${state.error}</div>` : ''}
+
+                ${renderInput(t("formName"), "inp-name", "text", "Musa Ibrahim", state.formData.name, "state.formData.name = this.value")}
+                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "state.formData.phone = this.value.replace(/\\D/g, '').slice(0, 11)")}
+                
+                ${renderSelect(t("formLocation"), "sel-lga", LGAs, state.formData.lga, "state.formData.lga = this.value")}
+                ${renderSelect(t("formMineral"), "sel-mineral", ["Gypsum", "Limestone", "Gold", "Diatomite", "Kaolin", "Potash"], state.formData.mineral, "state.formData.mineral = this.value")}
+
+                <div class="mb-6">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">${t("formPhoto")}</label>
+                  <div class="flex items-center gap-4">
+                    <label class="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-3 rounded-xl border border-dashed border-gray-400 flex items-center gap-2 transition w-full justify-center">
+                      ${Icon("camera", "w-5 h-5")} Upload Photo
+                      <input type="file" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                    </label>
+                    ${state.formData.photoURL ? `<img src="${state.formData.photoURL}" class="w-12 h-12 rounded-full object-cover border-2 border-yellow-500 shadow-sm">` : ''}
+                  </div>
+                </div>
+
+                <button onclick="submitForm('artisan')" class="w-full bg-emerald-800 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-emerald-900 transition flex justify-center items-center">
+                  ${state.isLoading ? Icon("loader-2", "animate-spin mr-2") : ""}
+                  ${state.isLoading ? t("processing") : t("submit")}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderLicenseForm() {
+        return `
+          <div class="max-w-xl w-full mx-auto px-4 py-8 animate-slide-in-right">
+            <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
+            
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div class="bg-emerald-700 p-4 text-white">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                  ${Icon("building-2")} ${t("applyLicense")}
+                </h2>
+              </div>
+              
+              <div class="p-6">
+                ${state.error ? `<div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">${state.error}</div>` : ''}
+
+                ${renderInput(t("formCompany"), "inp-comp", "text", "e.g. Desert Mining Ltd", state.formData.companyName, "state.formData.companyName = this.value")}
+                ${renderInput(t("formRC"), "inp-rc", "text", "RC123456", state.formData.rcNumber, "state.formData.rcNumber = this.value")}
+                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "state.formData.phone = this.value.replace(/\\D/g, '').slice(0, 11)")}
+                
+                ${renderSelect(t("formLocation"), "sel-lga", LGAs, state.formData.lga, "state.formData.lga = this.value")}
+                ${renderSelect(t("formMineral"), "sel-mineral", ["Gypsum", "Limestone", "Gold", "Diatomite", "Kaolin", "Potash"], state.formData.mineral, "state.formData.mineral = this.value")}
+
+                <div class="mb-6">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">${t("formCAC")}</label>
+                  <label class="cursor-pointer bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-4 py-3 rounded-xl border border-dashed border-emerald-300 flex flex-col items-center gap-2 transition text-center">
+                    ${Icon("upload-cloud", "w-8 h-8")}
+                    <span class="text-sm font-medium">${state.formData.cacName || "Click to upload PDF/Image"}</span>
+                    <input type="file" accept="image/*,.pdf" class="hidden" onchange="handleCACUpload(event)">
+                  </label>
+                </div>
+
+                <button onclick="submitForm('license')" class="w-full bg-emerald-800 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-emerald-900 transition flex justify-center items-center">
+                  ${state.isLoading ? Icon("loader-2", "animate-spin mr-2") : ""}
+                  ${state.isLoading ? t("processing") : t("submit")}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderStatusCheck() {
+        return `
+          <div class="max-w-md w-full mx-auto px-4 py-8 animate-slide-in-right">
+            <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-6 text-center">
+              <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                ${Icon("search", "w-8 h-8")}
+              </div>
+              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("checkStatusTitle")}</h2>
+              <p class="text-sm text-gray-500 mb-6">${t("enterId")}</p>
+              
+              <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. ART-54321 or YSM-RC..." />
+              
+              <button onclick="alert('${t("notFound")}')" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
+                Check Now
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderRenewCheck() {
+        return `
+          <div class="max-w-md w-full mx-auto px-4 py-8 animate-slide-in-right">
+            <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-6 text-center">
+              <div class="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                ${Icon("refresh-cw", "w-8 h-8")}
+              </div>
+              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("renewTitle")}</h2>
+              <p class="text-sm text-gray-500 mb-6">Enter your expired license ID to begin renewal.</p>
+              
+              <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4 focus:ring-2 focus:ring-orange-500 outline-none" placeholder="License Number" />
+              
+              <button onclick="alert('System up to date. No pending renewals found for this ID.')" class="w-full bg-orange-600 text-white py-3 rounded-xl font-bold hover:bg-orange-700 transition">
+                Proceed
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderAdminLogin() {
+        return `
+          <div class="min-h-[70vh] flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full animate-fade-in-up border border-gray-100">
+              <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  ${Icon("lock","w-8 h-8 text-emerald-700")}
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">${t("adminLogin")}</h2>
+                <p class="text-gray-500 text-sm mt-1">Authorized personnel only</p>
+              </div>
+
+              <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Staff ID / Access PIN</label>
+                  <input id="admin-pin" type="password" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="••••••" />
+                </div>
+
+                <button id="admin-submit" type="submit" class="w-full bg-emerald-800 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-emerald-900 transition-colors flex items-center justify-center">
+                  ${t("portalEntry")}
+                </button>
+              </form>
+              
+              <div class="mt-4 text-center">
+                 <button onclick="setView('landing')" class="text-sm text-gray-500 hover:text-emerald-700">Cancel</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function statusPill(status) {
+         const cls = status === "Approved" ? "bg-green-100 text-green-800" : status === "Rejected" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
+         const dot = status === "Approved" ? "bg-green-500" : status === "Rejected" ? "bg-red-500" : "bg-yellow-500";
+         return `<span class="flex items-center w-fit px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}"><span class="w-1.5 h-1.5 rounded-full mr-1.5 ${dot}"></span>${status}</span>`;
+      }
+
+      function renderMDDashboard() {
+        return `
+           <div class="min-h-screen bg-gray-900 text-white pb-12 animate-fade-in-up">
+              <!-- MD Header -->
+              <div class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center sticky top-[72px] z-30 shadow-md">
+                 <h2 class="text-xl font-bold flex items-center text-yellow-400 font-mono tracking-wider">
+                    ${Icon("shield", "w-5 h-5 mr-2")}
+                    ${t("mdDashboard")}
+                 </h2>
+                 <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 text-xs bg-red-900/50 border border-red-500 text-red-300 px-3 py-1 rounded-full animate-pulse">
+                       <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                       <span>LIVE FEED ACTIVE</span>
+                    </div>
+                    <button onclick="logout()" class="flex items-center text-gray-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors text-sm font-medium">
+                       ${Icon("log-out","w-4 h-4 mr-1.5")} ${t("logout")}
+                    </button>
+                 </div>
+              </div>
+
+              <div class="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-6">
+                 
+                 <!-- MAIN MAP AREA -->
+                 <div class="col-span-12 lg:col-span-8 bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 shadow-xl relative min-h-[500px]">
+                    <div class="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur px-3 py-1 rounded text-xs border border-white/20">
+                       <span class="text-gray-400">SECTOR:</span> YOBE-NORTH
+                    </div>
+                    
+                    <!-- Fake Map -->
+                    <div class="w-full h-full bg-gray-700 relative overflow-hidden group">
+                       <img src="${ASSETS.mapBg}" class="w-full h-full object-cover opacity-30 grayscale group-hover:grayscale-0 transition-all duration-700" />
+                       
+                       <!-- Map Markers -->
+                       <div class="absolute top-1/4 left-1/3 w-3 h-3 bg-yellow-400 rounded-full marker-pulse cursor-pointer" title="Potiskum Site"></div>
+                       <div class="absolute bottom-1/3 right-1/4 w-3 h-3 bg-red-500 rounded-full marker-pulse cursor-pointer" title="Damaturu Site"></div>
+                       <div class="absolute top-1/2 left-1/2 w-3 h-3 bg-green-500 rounded-full marker-pulse cursor-pointer" title="Nguru Site"></div>
+                       <div class="absolute top-10 left-10 w-3 h-3 bg-yellow-400 rounded-full marker-pulse cursor-pointer" title="Geidam Site"></div>
+
+                       <!-- Stats Overlay -->
+                       <div class="absolute bottom-4 left-4 bg-black/70 backdrop-blur p-4 rounded-xl border border-gray-600 w-64">
+                          <h4 class="text-xs text-gray-400 uppercase mb-2">Artisans On Site (Live)</h4>
+                          <div class="flex justify-between items-end">
+                             <div class="text-3xl font-bold font-mono text-white">4,281</div>
+                             <div class="text-xs text-green-400 flex items-center">${Icon("trending-up", "w-3 h-3 mr-1")} +12%</div>
+                          </div>
+                          <div class="w-full bg-gray-600 h-1 mt-2 rounded-full overflow-hidden">
+                             <div class="bg-yellow-400 h-full w-[70%]"></div>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 <!-- SIDEBAR STATS & CCTV -->
+                 <div class="col-span-12 lg:col-span-4 space-y-6">
+                    
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-2 gap-4">
+                       <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                          <div class="text-xs text-gray-400 uppercase">Daily Revenue</div>
+                          <div class="text-xl font-bold text-green-400 font-mono mt-1">₦ 2.4M</div>
+                       </div>
+                       <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                          <div class="text-xs text-gray-400 uppercase">Licenses</div>
+                          <div class="text-xl font-bold text-blue-400 font-mono mt-1">12 Pending</div>
+                       </div>
+                    </div>
+
+                    <!-- CCTV GRID -->
+                    <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                       <div class="bg-gray-900 px-4 py-2 border-b border-gray-700 flex justify-between items-center">
+                          <span class="text-xs font-bold text-gray-300">SITE SURVEILLANCE</span>
+                          <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                       </div>
+                       <div class="grid grid-cols-2 gap-1 p-1 bg-black">
+                          <div class="relative aspect-video bg-gray-900 group overflow-hidden">
+                             <img src="https://images.unsplash.com/photo-1629814484838-59265e317454?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition"/>
+                             <div class="absolute top-1 left-1 text-[8px] bg-black/50 text-white px-1">CAM-01</div>
+                          </div>
+                          <div class="relative aspect-video bg-gray-900 group overflow-hidden">
+                             <img src="https://images.unsplash.com/photo-1599939571322-792a326991f2?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition"/>
+                             <div class="absolute top-1 left-1 text-[8px] bg-black/50 text-white px-1">CAM-02</div>
+                          </div>
+                          <div class="relative aspect-video bg-gray-900 group overflow-hidden">
+                             <img src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition"/>
+                             <div class="absolute top-1 left-1 text-[8px] bg-black/50 text-white px-1">CAM-03</div>
+                          </div>
+                          <div class="relative aspect-video bg-gray-900 group overflow-hidden">
+                             <img src="https://images.unsplash.com/photo-1615811361524-788493823740?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition"/>
+                             <div class="absolute top-1 left-1 text-[8px] bg-black/50 text-white px-1">CAM-04</div>
+                          </div>
+                       </div>
+                    </div>
+
+                    <!-- Alerts -->
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                       <h4 class="text-xs font-bold text-gray-400 mb-3 uppercase">Recent Alerts</h4>
+                       <div class="space-y-2">
+                          <div class="flex items-start text-sm">
+                             <span class="text-red-400 mr-2">●</span>
+                             <span class="text-gray-300 text-xs">Unregistered machinery detected in Zone 4.</span>
+                          </div>
+                          <div class="flex items-start text-sm">
+                             <span class="text-yellow-400 mr-2">●</span>
+                             <span class="text-gray-300 text-xs">License renewal pending for Yobe Gold Corp.</span>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        `;
+      }
+
+      function renderAdminDashboard() {
+        const q = state.adminSearch.toLowerCase();
+        const filtered = state.applications.filter(app => !q || app.name.toLowerCase().includes(q) || app.type.toLowerCase().includes(q) || app.location.toLowerCase().includes(q));
+
+        return `
+          <div class="min-h-screen bg-gray-50 pb-12 animate-fade-in-up">
+            <!-- Dash Header -->
+            <div class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-[72px] z-30 shadow-sm">
+              <h2 class="text-xl font-bold text-emerald-900 flex items-center">
+                ${Icon("activity","w-5 h-5 mr-2 text-emerald-600")}
+                ${t("dashboard")}
+              </h2>
+              <div class="flex items-center space-x-4">
+                 <div class="hidden md:flex items-center space-x-2 text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <span>System Online</span>
+                 </div>
+                 <button onclick="logout()" class="flex items-center text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium">
+                    ${Icon("log-out","w-4 h-4 mr-1.5")} ${t("logout")}
+                 </button>
+              </div>
+            </div>
+
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <!-- Stats -->
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
+                    <div>
+                       <p class="text-sm font-medium text-gray-500">${t("totalRevenue")}</p>
+                       <h3 class="text-2xl font-bold text-gray-900 mt-1">₦ 45.2M</h3>
+                       <p class="text-xs text-green-600 mt-1 flex items-center">${Icon("trending-up","w-3 h-3 mr-1")} +12%</p>
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-lg text-blue-600">${Icon("bar-chart-3","w-6 h-6")}</div>
+                 </div>
+                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
+                    <div>
+                       <p class="text-sm font-medium text-gray-500">${t("activeMiners")}</p>
+                       <h3 class="text-2xl font-bold text-gray-900 mt-1">1,240</h3>
+                    </div>
+                    <div class="p-3 bg-emerald-50 rounded-lg text-emerald-600">${Icon("users","w-6 h-6")}</div>
+                 </div>
+                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
+                    <div>
+                       <p class="text-sm font-medium text-gray-500">${t("pendingApps")}</p>
+                       <h3 class="text-2xl font-bold text-gray-900 mt-1">${state.applications.filter(a => a.status === 'Pending').length}</h3>
+                    </div>
+                    <div class="p-3 bg-orange-50 rounded-lg text-orange-600">${Icon("alert-circle","w-6 h-6")}</div>
+                 </div>
+                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
+                    <div>
+                       <p class="text-sm font-medium text-gray-500">${t("licensesIssued")}</p>
+                       <h3 class="text-2xl font-bold text-gray-900 mt-1">${state.applications.filter(a => a.status === 'Approved').length}</h3>
+                    </div>
+                    <div class="p-3 bg-purple-50 rounded-lg text-purple-600">${Icon("file-check","w-6 h-6")}</div>
+                 </div>
+              </div>
+
+              <!-- Table -->
+              <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                   <div class="flex items-center gap-4">
+                      <h3 class="text-lg font-bold text-gray-800">${t("recentActivity")}</h3>
+                      <div class="flex gap-2 text-xs">
+                         <button onclick="handleSort('date')" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-600">Sort Date</button>
+                         <button onclick="handleSort('status')" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-600">Sort Status</button>
+                      </div>
+                   </div>
+                   <div class="relative w-full md:w-64">
+                      <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">${Icon("search","w-4 h-4")}</span>
+                      <input type="text" oninput="handleAdminSearch(event)" value="${state.adminSearch}" placeholder="Search..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+                   </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                   <table class="w-full text-sm text-left text-gray-500">
+                      <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
+                         <tr>
+                            <th class="px-6 py-3">ID</th>
+                            <th class="px-6 py-3">Name</th>
+                            <th class="px-6 py-3">Type</th>
+                            <th class="px-6 py-3">Location</th>
+                            <th class="px-6 py-3">Status</th>
+                            <th class="px-6 py-3 text-right">Actions</th>
+                         </tr>
+                      </thead>
+                      <tbody>
+                         ${filtered.map(app => `
+                            <tr class="bg-white border-b hover:bg-gray-50">
+                               <td class="px-6 py-4 font-mono text-gray-900">#${app.id}</td>
+                               <td class="px-6 py-4 font-medium text-gray-900">${app.name}</td>
+                               <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs font-medium ${app.type === "Artisan" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}">${app.type}</span></td>
+                               <td class="px-6 py-4">${app.location}</td>
+                               <td class="px-6 py-4">${statusPill(app.status)}</td>
+                               <td class="px-6 py-4 text-right space-x-2">
+                                  <button onclick="viewApplication(${app.id})" class="text-blue-600 hover:text-blue-900 font-medium text-xs border border-blue-200 px-2 py-1 rounded hover:bg-blue-50">${t("viewDocs")}</button>
+                                  ${app.status === 'Pending' ? `
+                                     <button onclick="updateStatus(${app.id}, 'Approved')" class="text-green-600 hover:text-green-900 font-medium text-xs border border-green-200 px-2 py-1 rounded hover:bg-green-50">${t("approve")}</button>
+                                     <button onclick="updateStatus(${app.id}, 'Rejected')" class="text-red-600 hover:text-red-900 font-medium text-xs border border-red-200 px-2 py-1 rounded hover:bg-red-50">${t("reject")}</button>
+                                  ` : ''}
+                               </td>
+                            </tr>
+                         `).join('')}
+                         ${filtered.length === 0 ? `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">No results found</td></tr>` : ''}
+                      </tbody>
+                   </table>
+                </div>
+              </div>
+            </div>
+            
+            ${state.previewAppId ? renderApplicationPreviewModal() : ''}
+          </div>
+        `;
+      }
+
+      function renderApplicationPreviewModal() {
+         const app = state.applications.find(a => a.id === state.previewAppId);
+         if (!app) return '';
+         
+         const isArtisan = app.type === 'Artisan';
+         const docTitle = isArtisan ? "MINER ID CARD" : "MINING LICENSE";
+         const qrData = encodeURIComponent(`ID:${app.id}|Name:${app.name}|Status:${app.status}`);
+         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+
+         // Reuse the success card logic but adapted for modal
+         const cardContent = isArtisan ? `
+            <div class="relative w-[300px] h-[480px] bg-gradient-to-br from-green-700 to-green-900 rounded-xl shadow-2xl overflow-hidden text-white flex flex-col items-center pt-6 pb-4 px-4 border border-yellow-500/30 mx-auto">
+               <div class="flex flex-col items-center mb-4 z-10 text-center">
+                  <img src="${ASSETS.coatOfArms}" class="w-10 h-10 object-contain mb-1">
+                  <h3 class="text-[10px] uppercase tracking-widest text-green-200">Federal Republic of Nigeria</h3>
+                  <h1 class="text-sm font-bold font-serif text-yellow-400">YOBE STATE GOVERNMENT</h1>
+               </div>
+               <div class="w-24 h-24 rounded-full border-2 border-yellow-400 overflow-hidden shadow-lg mb-2 z-10 bg-gray-300">
+                  <img src="${app.photoURL || ASSETS.miningLogo}" class="w-full h-full object-cover">
+               </div>
+               <div class="text-center z-10 w-full">
+                  <h2 class="text-lg font-bold text-white truncate">${app.name}</h2>
+                  <p class="text-xs text-green-300 uppercase">${app.location} LGA</p>
+                  <div class="bg-white/10 rounded p-1 flex justify-between items-center text-[10px] border border-white/10 mt-2">
+                     <div class="text-left"><div>Mineral</div><div class="font-bold text-yellow-300">${app.mineral}</div></div>
+                     <div class="text-right"><div>ID</div><div class="font-mono font-bold text-white">ART-${app.id}</div></div>
+                  </div>
+               </div>
+               <div class="mt-auto z-10 w-full flex justify-between items-end">
+                  <div class="bg-white p-1 rounded"><img src="${qrUrl}" class="w-12 h-12"></div>
+               </div>
+            </div>
+         ` : `
+            <div class="relative w-full bg-[#fcfbf7] text-gray-800 p-6 border-[4px] border-double border-emerald-800 shadow-xl flex flex-col items-center font-serif">
+               <div class="w-full flex justify-between items-start border-b border-emerald-800 pb-2 mb-4">
+                  <img src="${ASSETS.coatOfArms}" class="w-12">
+                  <div class="text-center">
+                     <h1 class="text-xl font-bold text-emerald-900">YOBE STATE GOVT</h1>
+                     <div class="text-[10px] text-emerald-700 font-bold italic">Ministry of Mineral Resources</div>
+                  </div>
+               </div>
+               <h1 class="text-2xl font-bold text-yellow-600 mb-4 underline decoration-double">LICENSE CERTIFICATE</h1>
+               <div class="text-center text-sm mb-4">
+                  <p>Certified that <strong class="text-emerald-900">${app.name}</strong> (RC:${app.rcNumber || 'N/A'}) is authorized for <strong>${app.mineral}</strong> mining in <strong>${app.location}</strong>.</p>
+               </div>
+               <div class="mt-auto w-full flex justify-between items-end">
+                  <img src="${qrUrl}" class="w-16 h-16 border p-1">
+                  <div class="text-center"><div class="text-xl font-cursive text-blue-900">Signed</div><div class="border-t border-gray-800 text-[10px] uppercase">Commissioner</div></div>
+               </div>
+            </div>
+         `;
+
+         return `
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in-up">
+               <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+                  <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                     <h3 class="font-bold text-gray-800">Application #${app.id} Documents</h3>
+                     <button onclick="closePreview()" class="text-gray-500 hover:text-gray-800">${Icon("x", "w-6 h-6")}</button>
+                  </div>
+                  <div class="p-8 bg-gray-200 flex justify-center">
+                     ${cardContent}
+                  </div>
+                  <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                     <button onclick="closePreview()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
+                     ${app.status === 'Pending' ? `
+                        <button onclick="updateStatus(${app.id}, 'Rejected'); closePreview()" class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-medium">Reject</button>
+                        <button onclick="updateStatus(${app.id}, 'Approved'); closePreview()" class="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg font-bold shadow">Approve</button>
+                     ` : ''}
+                  </div>
+               </div>
+            </div>
+         `;
+      }
+
+      function renderSuccess() {
+        const isArtisan = state.generatedId.startsWith('ART');
+        
+        // QR Code API
+        const qrData = encodeURIComponent(`ID:${state.generatedId}|Name:${state.formData.name || state.formData.companyName}|Valid:${formatDate(state.expiryDate)}`);
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+
+        return `
+          <div class="flex-grow flex flex-col items-center py-10 px-4 bg-gray-100">
+            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 animate-bounce">
+              ${Icon("check-circle", "w-10 h-10")}
+            </div>
+            <h2 class="text-2xl font-bold text-emerald-900 mb-8">${t("success")}</h2>
+
+            <!-- Result Container -->
+            <div class="w-full max-w-2xl mb-8 flex justify-center">
+              
+              ${isArtisan ? `
+                <!-- ARTISAN ID CARD DESIGN -->
+                <div id="download-target" class="relative w-[340px] h-[540px] bg-gradient-to-br from-green-700 to-green-900 rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col items-center pt-8 pb-4 px-6 border border-yellow-500/30">
+                  <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')]"></div>
+                  
+                  <div class="flex flex-col items-center mb-6 z-10 text-center">
+                    <img src="${ASSETS.coatOfArms}" class="w-12 h-12 object-contain mb-2 drop-shadow-md">
+                    <h3 class="text-xs uppercase tracking-widest text-green-200">Federal Republic of Nigeria</h3>
+                    <h1 class="text-lg font-bold font-serif text-yellow-400">YOBE STATE GOVERNMENT</h1>
+                    <div class="text-[10px] bg-white/20 px-2 py-0.5 rounded text-white mt-1">Certified Artisan Miner</div>
+                  </div>
+
+                  <div class="w-32 h-32 rounded-full border-4 border-yellow-400 overflow-hidden shadow-lg mb-4 z-10 bg-gray-300">
+                    <img src="${state.formData.photoURL || ASSETS.miningLogo}" class="w-full h-full object-cover">
+                  </div>
+
+                  <div class="text-center z-10 w-full space-y-2">
+                    <div>
+                      <h2 class="text-xl font-bold text-white truncate">${state.formData.name}</h2>
+                      <p class="text-xs text-green-300 uppercase">${state.formData.lga} LGA</p>
+                    </div>
+                    
+                    <div class="bg-white/10 rounded-lg p-2 flex justify-between items-center text-xs border border-white/10 mt-2">
+                      <div class="text-left">
+                        <div class="text-green-300 text-[10px]">Mineral</div>
+                        <div class="font-bold text-yellow-300">${state.formData.mineral}</div>
+                      </div>
+                       <div class="text-right">
+                        <div class="text-green-300 text-[10px]">ID Number</div>
+                        <div class="font-mono font-bold text-white">${state.generatedId}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-auto z-10 w-full flex justify-between items-end">
+                     <div class="text-left">
+                       <div class="text-[10px] text-green-400">Expires</div>
+                       <div class="text-sm font-bold">${formatDate(state.expiryDate)}</div>
+                     </div>
+                     <div class="bg-white p-1 rounded">
+                       <img src="${qrUrl}" class="w-16 h-16">
+                     </div>
+                  </div>
+                </div>
+              ` : `
+                 <!-- COMPANY CERTIFICATE DESIGN -->
+                 <div id="download-target" class="relative w-[800px] bg-[#fcfbf7] text-gray-800 p-10 border-[10px] border-double border-emerald-800 shadow-2xl flex flex-col items-center font-serif aspect-[1.4/1]">
+                    <div class="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
+                       <img src="${ASSETS.coatOfArms}" class="w-[400px]">
+                    </div>
+
+                    <div class="w-full flex justify-between items-start border-b-2 border-emerald-800 pb-4 mb-8 z-10">
+                      <img src="${ASSETS.coatOfArms}" class="w-20">
+                      <div class="text-center">
+                        <h2 class="text-sm uppercase tracking-[0.2em] text-gray-500">Federal Republic of Nigeria</h2>
+                        <h1 class="text-3xl font-bold text-emerald-900 mt-1">YOBE STATE GOVERNMENT</h1>
+                        <div class="text-emerald-700 font-bold italic mt-1">Ministry of Mineral Resources</div>
+                      </div>
+                       <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center border-2 border-emerald-600">
+                          <span class="text-3xl">🏜️</span>
+                       </div>
+                    </div>
+
+                    <h1 class="text-4xl font-bold text-yellow-600 mb-6 z-10 underline decoration-double underline-offset-4">${t("certTitle")}</h1>
+
+                    <div class="text-center max-w-2xl text-lg leading-relaxed z-10 mb-8 space-y-4">
+                      <p>${t("certBody")}</p>
+                      
+                      <div class="my-6 py-4 border-t border-b border-gray-300 bg-emerald-50/50">
+                         <div class="text-3xl font-bold text-emerald-900 mb-1 uppercase">${state.formData.companyName}</div>
+                         <div class="font-mono text-gray-500 text-sm tracking-widest">RC: ${state.formData.rcNumber}</div>
+                      </div>
+
+                      <p>Has been granted a license for <strong class="text-emerald-800 underline">${state.formData.mineral}</strong> mining operations in <strong class="text-emerald-800 underline">${state.formData.lga}</strong> LGA.</p>
+                    </div>
+
+                    <div class="w-full mt-auto grid grid-cols-3 gap-8 items-end z-10">
+                      <div class="text-center">
+                        <img src="${qrUrl}" class="w-24 h-24 mx-auto border p-1 bg-white mb-2">
+                        <div class="text-xs text-gray-400 font-sans">Scan to Verify</div>
+                      </div>
+
+                      <div class="text-center font-sans">
+                        <div class="text-xs text-gray-500 uppercase mb-1">${t("validUntil")}</div>
+                        <div class="text-xl font-bold text-red-600">${formatDate(state.expiryDate)}</div>
+                        <div class="text-xs text-gray-400 mt-1">${t("issuedOn")}: ${formatDate(state.issueDate)}</div>
+                      </div>
+
+                      <div class="text-center">
+                         <div class="w-32 h-12 mx-auto mb-2 relative">
+                           <div class="absolute inset-0 flex items-center justify-center font-cursive text-2xl text-blue-900 rotate-[-10deg] opacity-80" style="font-family: cursive;">Signed</div>
+                         </div>
+                         <div class="border-t border-gray-800 pt-1 font-bold text-sm uppercase">${t("signature")}</div>
+                      </div>
+                    </div>
+                 </div>
+              `}
+            </div>
+
+            <div class="flex gap-4">
+              <button onclick="downloadElement('download-target', '${isArtisan ? 'MinerID' : 'MiningLicense'}')" class="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg transition flex items-center gap-2">
+                ${Icon("download")} ${isArtisan ? t("downloadID") : t("downloadCert")}
+              </button>
+              <button onclick="setView('miner-portal')" class="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-gray-50 transition">
+                ${t("back")}
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      // --- Main Render Loop ---
+      function render() {
+        let content = "";
+        if (state.view === "landing") content = renderLanding();
+        else if (state.view === "miner-portal") content = renderMinerPortal();
+        else if (state.view === "artisan-form") content = renderArtisanForm();
+        else if (state.view === "license-form") content = renderLicenseForm();
+        else if (state.view === "status-check") content = renderStatusCheck();
+        else if (state.view === "renew-check") content = renderRenewCheck();
+        else if (state.view === "success") content = renderSuccess();
+        else if (state.view === "admin-login") content = renderAdminLogin();
+        else if (state.view === "admin-dashboard") content = renderAdminDashboard();
+        else if (state.view === "md-dashboard") content = renderMDDashboard();
+
+        app.innerHTML = `
+          ${state.view === 'md-dashboard' ? '' : renderHeader()}
+          ${content}
+          ${state.view === 'md-dashboard' ? '' : renderFooter()}
+        `;
+        
+        lucide.createIcons();
+      }
+
+      // Init
+      render();
+
+    })();
   </script>
 </body>
 </html>
