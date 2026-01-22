@@ -4,84 +4,75 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <title>Yobe State Mining Company</title>
-
-  <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Lucide Icons (UMD) -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-
-  <!-- html2canvas for downloading images -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://rawgit.com/cozmo/jsQR/master/dist/jsQR.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
-
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Courier+Prime:wght@400;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
     .font-serif { font-family: 'Playfair Display', serif; }
+    .font-mono-security { font-family: 'Courier Prime', monospace; }
     .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-
     /* Animations */
     @keyframes fade-in-up {
       from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .animate-fade-in-up { animation: fade-in-up .5s ease-out forwards; }
-
     @keyframes slide-in-right {
       from { opacity: 0; transform: translateX(20px); }
-      to   { opacity: 1; transform: translateX(0); }
+      to { opacity: 1; transform: translateX(0); }
     }
     .animate-slide-in-right { animation: slide-in-right .4s ease-out forwards; }
-
-    @keyframes pulse-ring {
-      0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-      100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-    }
-    .marker-pulse { animation: pulse-ring 2s infinite; }
     
     /* Custom Scrollbar for dashboards */
     .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scroll::-webkit-scrollbar-track { background: transparent; }
     .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
-
-    /* Security Patterns */
-    .security-pattern {
-      background-image: radial-gradient(#10b981 0.5px, transparent 0.5px), radial-gradient(#10b981 0.5px, #fcfbf7 0.5px);
-      background-size: 20px 20px;
-      background-position: 0 0, 10px 10px;
-      opacity: 0.05;
+    /* Security Patterns & Watermarks */
+    .security-guilloche {
+      background-image: 
+        repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(16, 185, 129, 0.05) 10px, rgba(16, 185, 129, 0.05) 20px),
+        repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(16, 185, 129, 0.05) 10px, rgba(16, 185, 129, 0.05) 20px);
     }
-
-    .guilloche-border {
-      border: 8px solid transparent;
-      border-image: repeating-linear-gradient(45deg, #064e3b 0, #064e3b 10px, #d97706 10px, #d97706 20px) 1;
+    
+    .cert-border {
+      border: 4px double #065f46;
+      outline: 2px solid #d97706;
+      outline-offset: 2px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
     }
-
-    .watermark-ghost {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-30deg);
-      opacity: 0.03;
-      pointer-events: none;
-      font-size: 8rem;
-      font-weight: 900;
-      white-space: nowrap;
-      color: #000;
-      z-index: 0;
-    }
-
-    .hologram-overlay {
-      background: linear-gradient(135deg, transparent 40%, rgba(255, 255, 255, 0.2) 50%, transparent 60%);
+    .hologram-strip {
+      background: linear-gradient(135deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 70%);
       background-size: 200% 200%;
-      animation: hologram 3s infinite linear;
+      animation: hologram-shine 3s infinite linear;
     }
-
-    @keyframes hologram {
+    @keyframes hologram-shine {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
+    }
+    .cert-watermark {
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><text x="0" y="50" font-size="20" fill="gray">AUTHENTIC</text></svg>');
+      background-repeat: repeat;
+    }
+    /* Map Blinking People */
+    .miner-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #10b981; /* Emerald 500 */
+      border-radius: 50%;
+      position: absolute;
+      box-shadow: 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: miner-pulse 2s infinite;
+      z-index: 20;
+    }
+    @keyframes miner-pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
     
     /* Live feed blinking dot */
@@ -93,39 +84,97 @@
     }
   </style>
 </head>
-
 <body class="bg-gray-50 text-gray-800 antialiased selection:bg-green-200 selection:text-green-900">
   <div id="app" class="min-h-screen flex flex-col"></div>
-
   <script>
     (function() {
-      // --- Assets ---
+      // =========================================================================
+      // CONFIGURATION
+      // =========================================================================
+      
+      const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjB-0Qdk--4m9FBrqQN__iXYwFvlYjcJxEOPMitGiZLgWEgDkfebbAyB8XRhuoUk4/exec"; 
+
+      // =========================================================================
+      // BACKEND CONNECTION
+      // =========================================================================
+      
+      async function callBackend(payload) {
+        if (!GOOGLE_SCRIPT_URL) {
+          console.warn("No Google Script URL provided.");
+          return null;
+        }
+        try {
+          const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          const json = await response.json();
+          return json;
+        } catch (error) {
+          console.error("Backend Error (CORS likely):", error);
+          if (payload.action === 'search') {
+             // Fallback for demo purposes if CORS blocks the read
+             if(payload.id === 'ART-123456' || payload.id === 'YSM-123456') {
+                 return { 
+                     result: "success", 
+                     data: { 
+                         id: payload.id, 
+                         name: "Demo Miner", 
+                         lga: "Damaturu", 
+                         mineral: "Gold", 
+                         expiryDate: "2025-12-31", 
+                         photoURL: ASSETS.miningLogo 
+                     } 
+                 };
+             }
+          }
+          return { result: "error", error: "Connection failed" };
+        }
+      }
+
+      async function saveToGoogleSheet(sheetName, data) {
+        const payload = {
+          action: "save",
+          sheet: sheetName,
+          data: data
+        };
+        try {
+            await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } catch(e) { console.log("Save failed", e) }
+      }
+
+      // Load face-api models
+      Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights')
+      ]).then(() => console.log('Face models loaded'));
+        
       const ASSETS = {
-        coatOfArms: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Coat_of_arms_of_Nigeria.svg/1200px-Coat_of_arms_of_Nigeria.svg.png",
-        // miningLogo: "https://cdn-icons-png.flaticon.com/512/2592/2592175.png", // Old logo
-        miningLogo: "https://yobemdcl.com/images/header/Logo.jpeg", // New requested logo
+        miningLogo: "https://yobemdcl.com/images/header/Logo.jpeg",
         dashBg: "https://images.unsplash.com/photo-1576082989508-e16109968803?q=80&w=2070&auto=format&fit=crop"
       };
-
-      // --- Translations ---
+      
       const translations = {
         en: {
           appTitle: "Yobe State Mining Company",
           subtitle: "Regulating & Empowering Mining Activities",
           welcome: "Welcome",
-          start: "Start Here",
           portalEntry: "Enter Portal",
           adminLogin: "Staff Login",
           home: "Home",
           services: "Services",
           contact: "Contact",
           digitalSuite: "Digital Mining Suite",
-
           applyLicense: "Apply for License",
           registerArtisan: "Register as Artisan",
           idCard: "Get Miner ID Card",
           renew: "Renew Papers",
-          
           formName: "Full Name",
           formCompany: "Company Name",
           formRC: "RC Number",
@@ -134,51 +183,42 @@
           formMineral: "Mineral Type",
           formPhoto: "Upload Photo",
           formCAC: "CAC Certificate",
-          
           submit: "Submit Application",
           processing: "Processing...",
           success: "Successful!",
           downloadID: "Download ID Card",
           downloadCert: "Download Certificate",
           back: "Back",
-          
           companySuffixError: "Company name must end with LTD, Limited, PLC, Enterprise, LLC, Venture, or Company.",
           phoneError: "Phone number must be exactly 11 digits.",
           required: "This field is required.",
-          
           dashboard: "Executive Dashboard",
           mdDashboard: "MD Command Center",
+          staffDashboard: "Staff Operations",
           logout: "Logout",
-          
           dsTitle: "Digital Mining Suite",
-          dsSub: "Exploration, extraction, logistics, data intelligence, and compliance — unified.",
-          dsExplore: "Exploration & GIS",
+          dsSub: "Operations, Activity Records, Data, and Compliance.",
+          dsActivity: "Activity Record",
           dsExtract: "Extraction & Fleet",
-          dsLogistics: "Logistics & Supply Chain",
           dsData: "Data Management",
           dsCompliance: "Compliance Monitor",
-          
           footerDesc: "Official platform for regulating mining activities within Yobe State.",
-          quickLinks: "Quick Links",
           contactUs: "Contact Us"
         },
         ha: {
           appTitle: "Kamfanin Hakar Ma'adinai na Jihar Yobe",
           subtitle: "Rungumar Ayyukan Hakar Ma'adinai",
           welcome: "Barka da zuwa",
-          start: "Fara Anan",
           portalEntry: "Shiga Shafin",
           adminLogin: "Shiga na Ma'aikata",
           home: "Gida",
           services: "Ayyuka",
           contact: "Tuntube Mu",
           digitalSuite: "Tsarin Dijital na Ma'adinai",
-
           applyLicense: "Nemi Lasisi",
           registerArtisan: "Yi Rajistar 'Yan Haka",
           idCard: "Karbi Katin Shaida",
           renew: "Sabunta Takardu",
-
           formName: "Cikakken Suna",
           formCompany: "Sunan Kamfani",
           formRC: "Lambar RC",
@@ -187,138 +227,347 @@
           formMineral: "Nau'in Ma'adani",
           formPhoto: "Saka Hoto",
           formCAC: "Takardar CAC",
-
           submit: "Aika Bukata",
           processing: "Ana Aiki...",
           success: "An Yi Nasara!",
           downloadID: "Sauke Katin ID",
           downloadCert: "Sauke Takardar Lasisi",
           back: "Baya",
-
           companySuffixError: "Sunan kamfani dole ya kare da LTD, Limited, PLC, da sauransu.",
           phoneError: "Lambar waya dole ta kasance lamba 11.",
           required: "Ana bukatar wannan.",
-
           dashboard: "Dashboard na Shugabanni",
           mdDashboard: "Cibiyar MD",
+          staffDashboard: "Ayyukan Ma'aikata",
           logout: "Fita",
-          
           dsTitle: "Tsarin Dijital na Ma'adinai",
-          dsSub: "Bincike, hakowa, jigila, bayanai, da bin doka — a wuri guda.",
-          dsExplore: "Bincike & Taswira",
+          dsSub: "Ayyuka, Rikodin Aiki, Bayanai, da Bin Doka.",
+          dsActivity: "Rikodin Aiki",
           dsExtract: "Hakowa & Na'urori",
-          dsLogistics: "Jigila & Sarkar Kaya",
           dsData: "Sarrafa Bayanai",
           dsCompliance: "Sa Ido na Doka",
-          
           footerDesc: "Shafin hukuma na kula da ayyukan hakar ma'adinai a Jihar Yobe.",
-          quickLinks: "Hanyoyi Masu Sauki",
           contactUs: "Tuntube Mu"
         }
       };
-
       const LGAs = ["Damaturu","Potiskum","Nguru","Gashua","Geidam","Buni Yadi","Fika","Nangere", "Jakusko", "Bade", "Bursari", "Fune", "Gulani", "Gujba", "Karasuwa", "Machina", "Tarmuwa", "Yusufari"];
-
-      // --- Helpers ---
       const iso = (d) => new Date(d).toISOString().split('T')[0];
       const now = () => new Date();
       const addDays = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return d; };
       const addYears = (years) => { const d = new Date(); d.setFullYear(d.getFullYear() + years); return d; };
       const formatDate = (date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-
+      
       // --- State Management ---
       window.state = {
         lang: "en",
-        view: "landing", 
+        view: "landing",
         currentUserRole: null, 
         isLoading: false,
         error: null,
+        dataEntryModal: { open: false, type: '' },
+        exitLogModal: { open: false },
+        qrScannerModal: { open: false },
+        scannerContext: null, // 'global' or 'exitLog'
+        scannedQR: null,
+        onSiteArtisans: [],
+        exitLogs: [],
         adminSearch: "",
         applications: [
-          { id: 101, name: "Ibrahim Musa", type: "Artisan", location: "Damaturu", mineral: "Gold", date: "2023-10-24", status: "Pending", photoURL: null, issueDate: null, expiryDate: null, rcNumber: null, flags: [] },
-          { id: 102, name: "Yobe Gold Corp LTD", type: "License", location: "Fika", mineral: "Gypsum", rcNumber: "RC44211", date: "2023-10-25", status: "Pending", photoURL: null, issueDate: null, expiryDate: null, flags: [] },
-          { id: 103, name: "Fatima Sani", type: "Artisan", location: "Nguru", mineral: "Kaolin", date: "2023-10-23", status: "Approved", photoURL: null, issueDate: iso(addDays(-90)), expiryDate: iso(addDays(275)), rcNumber: null, flags: [] },
-          { id: 104, name: "Desert Sands Ltd", type: "License", location: "Geidam", mineral: "Limestone", rcNumber: "RC99882", date: "2023-10-22", status: "Approved", photoURL: null, issueDate: iso(addDays(-420)), expiryDate: iso(addDays(-20)), flags: [] },
-          { id: 105, name: "Aliyu Bello", type: "Artisan", location: "Potiskum", mineral: "Gold", date: "2023-10-26", status: "Pending", photoURL: null, issueDate: null, expiryDate: null, rcNumber: null, flags: [] },
+          { id: 101, name: "Ibrahim Musa", type: "Artisan", location: "Damaturu", mineral: "Gold", date: "2023-10-24", status: "Pending", photoURL: null, issueDate: null, expiryDate: null, rcNumber: null, flags: [] }
         ],
         previewAppId: null,
         timeString: new Date().toLocaleTimeString(),
-        dsTab: "explore",
+        dsTab: "activity",
         complianceCases: [
-          { id: "C-001", severity: "High", title: "Expired license detected", detail: "Desert Sands Ltd (RC99882) has an expired license.", createdAt: iso(addDays(-2)), resolved: false },
-          { id: "C-002", severity: "Medium", title: "Unregistered machinery", detail: "Heavy equipment in Zone 4 not linked to approved operator.", createdAt: iso(addDays(-1)), resolved: false },
+          { id: "C-001", severity: "High", title: "Expired license detected", detail: "Desert Sands Ltd (RC99882) has an expired license.", createdAt: iso(addDays(-2)), resolved: false }
         ],
         dataOps: { status: "OK", lastSync: new Date(Date.now() - 1000*60*18), recordsToday: 18421, ingestRatePerMin: 420, anomaliesToday: 6 },
         ops: {
           exploration: { activeMissions: 12, gisLayers: 19, drillTargets: 7, samplesToday: 148 },
-          extraction:  { activeSites: 6, equipmentOnline: 83, equipmentOffline: 9, tonnageToday: 1240 },
-          logistics:   { shipmentsInTransit: 31, deliveredToday: 18, fleetOnline: 42, fleetIdle: 7 }
+          extraction: { activeSites: 6, equipmentOnline: 83, equipmentOffline: 9, tonnageToday: 1240 }
         },
-        formData: { name: "", companyName: "", rcNumber: "", phone: "", lga: LGAs[0], mineral: "Gypsum", photoURL: null, cacName: "" },
-        generatedId: "", expiryDate: "", issueDate: ""
+        formData: { name: "", companyName: "", rcNumber: "", phone: "", lga: LGAs[0], mineral: "Gypsum", photoURL: null, cacName: "", cacURL: null, repPhotoURL: null },
+        generatedId: "", expiryDate: "", issueDate: "",
+        searchResult: null
       };
-
-      // Interval for live clock
+      
       setInterval(() => {
         state.timeString = new Date().toLocaleTimeString();
         const timeEls = document.querySelectorAll('.live-time');
         timeEls.forEach(el => el.innerText = state.timeString);
       }, 1000);
-
-      // Interval to refresh CCTV to simulate "Autoplay" live feed
+      
       setInterval(() => {
         const cctvImages = document.querySelectorAll('.cctv-live-img');
         cctvImages.forEach(img => {
             const originalSrc = img.getAttribute('data-original-src');
-            // Add a timestamp to force reload
             img.src = `${originalSrc}?t=${Date.now()}`;
         });
-      }, 5000); // Refresh every 5 seconds
+      }, 5000); 
 
       const state = window.state;
       const t = (key) => translations[state.lang][key] || key;
       const app = document.getElementById("app");
-
-      // --- View Utils ---
+      
       const setView = (view) => {
         state.view = view;
         state.error = null;
         window.scrollTo({ top: 0, behavior: 'instant' });
         render();
       };
-      window.setView = setView; 
-
+      window.setView = setView;
       window.toggleLang = function() {
         state.lang = state.lang === "en" ? "ha" : "en";
         render();
       };
-
       window.scrollToBottom = function() {
         window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
       }
-
       window.setDsTab = function (tab) {
         state.dsTab = tab;
         render();
       };
+      window.openDataEntry = function(type) {
+        state.dataEntryModal = { open: true, type: type };
+        render();
+      };
+      
+      window.closeDataEntry = function() {
+        state.dataEntryModal = { open: false, type: '' };
+        render();
+      }
+      
+      window.submitDataEntry = async function() {
+        const btn = document.getElementById('data-submit-btn');
+        if(btn) btn.innerHTML = "Saving...";
+        
+        const type = state.dataEntryModal.type;
+        let dataToSave = {};
 
-      // --- Form Handlers ---
-      window.handlePhotoUpload = function(event) {
-        const file = event.target.files[0];
-        if (file) {
-          state.formData.photoURL = URL.createObjectURL(file);
-          render(); 
+        if (type === 'Revenue') {
+            dataToSave = {
+                amount: document.getElementById('de-amount').value,
+                source: document.getElementById('de-source').value,
+                ref: document.getElementById('de-ref').value
+            };
+        } else if (type === 'Activity') {
+            dataToSave = {
+                location: document.getElementById('de-loc').value,
+                activity: document.getElementById('de-act').value,
+                notes: document.getElementById('de-notes').value
+            };
+        } else if (type === 'Extraction') {
+            dataToSave = {
+                siteId: document.getElementById('de-site').value,
+                tonnage: document.getElementById('de-ton').value,
+                mineral: document.getElementById('de-min').value
+            };
+        }
+
+        await saveToGoogleSheet(type + "Log", dataToSave);
+
+        setTimeout(() => {
+          state.dataEntryModal = { open: false, type: '' };
+          alert("Data successfully recorded to database.");
+          render();
+        }, 500);
+      }
+
+      window.openExitLog = function() {
+        state.exitLogModal.open = true;
+        render();
+      };
+      window.closeExitLog = function() {
+        state.exitLogModal.open = false;
+        render();
+      };
+      
+      window.submitExitLog = async function() {
+        const id = document.getElementById('exit-id').value;
+        const amount = document.getElementById('exit-amount').value;
+        const unit = document.getElementById('exit-unit').value;
+        const mineral = document.getElementById('exit-mineral').value;
+        
+        if (id && amount && mineral) {
+          const logData = { id, amount: `${amount} ${unit}`, mineral, time: new Date().toLocaleString() };
+          state.exitLogs.push(logData);
+          
+          const btn = document.querySelector('#exit-submit-btn');
+          if(btn) btn.innerHTML = "Sending...";
+          await saveToGoogleSheet("ExitLogs", logData);
+
+          state.exitLogModal.open = false;
+          render();
+        } else {
+          alert('All fields required');
         }
       };
 
-      window.handleCACUpload = function(event) {
+      window.checkStatus = async function() {
+        const input = document.getElementById('status-input').value.trim();
+        const btn = document.getElementById('status-btn');
+        const msgEl = document.getElementById('status-msg');
+        
+        if (!input) {
+            msgEl.innerText = "Please enter an ID.";
+            msgEl.className = "text-red-500 text-sm mt-2";
+            return;
+        }
+        
+        btn.innerText = "Checking...";
+        msgEl.innerText = "";
+        
+        const result = await callBackend({ action: 'search', id: input });
+        
+        btn.innerText = "Check";
+        
+        if (result && result.result === 'success') {
+            state.searchResult = result.data;
+            state.formData.name = state.searchResult.name || state.searchResult.companyName;
+            state.formData.lga = state.searchResult.location || state.searchResult.lga;
+            state.formData.mineral = state.searchResult.mineral;
+            state.formData.photoURL = state.searchResult.photoURL || ASSETS.miningLogo;
+            state.formData.rcNumber = state.searchResult.rcNumber;
+            state.generatedId = state.searchResult.id;
+            state.expiryDate = state.searchResult.expiryDate ? new Date(state.searchResult.expiryDate) : addYears(1);
+            
+            setView('search-success');
+        } else {
+            msgEl.innerText = "Record not found. Please verify the ID.";
+            msgEl.className = "text-red-500 text-sm mt-2 font-bold";
+        }
+      };
+
+      window.checkRenew = async function() {
+        const input = document.getElementById('renew-input').value.trim();
+        const btn = document.getElementById('renew-btn');
+        const msgEl = document.getElementById('renew-msg');
+        
+        if (!input) {
+            msgEl.innerText = "Please enter ID.";
+            msgEl.className = "text-red-500 text-sm mt-2";
+            return;
+        }
+        
+        btn.innerText = "Checking...";
+        msgEl.innerText = "";
+        const result = await callBackend({ action: 'search', id: input });
+        btn.innerText = "Proceed";
+        
+        if (result && result.result === 'success') {
+            msgEl.innerText = "Record found. Proceeding to renewal...";
+            msgEl.className = "text-green-600 text-sm mt-2 font-bold";
+            setTimeout(() => alert("Redirecting to payment gateway..."), 500);
+        } else {
+            msgEl.innerText = "Record not found.";
+            msgEl.className = "text-red-500 text-sm mt-2 font-bold";
+        }
+      }
+
+      window.openQRScanner = function(context = 'global') {
+        state.scannerContext = context;
+        state.qrScannerModal.open = true;
+        render();
+        setTimeout(() => startQRScanner(), 100);
+      };
+      window.closeQRScanner = function() {
+        state.qrScannerModal.open = false;
+        state.scannedQR = null;
+        stopQRScanner();
+        render();
+      };
+      let video = null;
+      let canvas = null;
+      let qrInterval = null;
+      function startQRScanner() {
+        video = document.getElementById('qr-video');
+        canvas = document.getElementById('qr-canvas');
+        if(!video) return;
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+          .then(stream => {
+            video.srcObject = stream;
+            video.play();
+            qrInterval = setInterval(scanQR, 100);
+          })
+          .catch(err => {
+            console.error(err);
+            alert('Camera access denied');
+            closeQRScanner();
+          });
+      }
+      function scanQR() {
+        if (!video || !canvas) return;
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.height = video.videoHeight;
+          canvas.width = video.videoWidth;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height);
+          if (code) {
+            state.scannedQR = code.data;
+            const scannedText = code.data;
+            // Parse ID if format is ID:XXXX|...
+            const parsedId = scannedText.includes('|') ? scannedText.split('|')[0].replace('ID:', '') : scannedText;
+            
+            if (state.scannerContext === 'exitLog') {
+               // We need to inject this into the input. Since we re-render, we can update a temp state or DOM
+               // Simpler to just update the input value after closing scanner if we weren't re-rendering entire app
+               // But our render() rebuilds DOM. So we must store it in a temp variable or update the input directly if the modal is separate.
+               // In this app architecture, render() redraws everything.
+               // We need to pass the scanned ID back to the exit log view.
+               // For now, let's just alert and pre-fill logic via a global var or similar if we wanted, 
+               // but cleaner is to modify the exit modal to accept a default value.
+               // Hack for this architecture:
+               document.getElementById('exit-id').value = parsedId;
+               closeQRScanner();
+               return; 
+            }
+
+            if (!state.onSiteArtisans.includes(parsedId)) {
+              state.onSiteArtisans.push(parsedId);
+            }
+            alert(`ID ${parsedId} scanned.`);
+            saveToGoogleSheet("ScanLogs", { id: parsedId, raw: scannedText, time: new Date().toLocaleString() });
+            closeQRScanner();
+          }
+        }
+      }
+      function stopQRScanner() {
+        if (video && video.srcObject) {
+          video.srcObject.getTracks().forEach(track => track.stop());
+        }
+        if (qrInterval) clearInterval(qrInterval);
+      }
+      
+      window.handlePhotoUpload = async function(event, type = 'photo') {
         const file = event.target.files[0];
         if (file) {
-          state.formData.cacName = file.name;
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.src = url;
+          await new Promise(r => img.onload = r);
+          
+          if (type === 'photo') {
+             const detections = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+             if (detections.length === 0) {
+               state.error = 'No face detected. Please upload a clear photo.';
+               render();
+               setTimeout(() => {
+                   state.error = null;
+                   render();
+               }, 3000); // Clear error after 3 seconds
+               return;
+             }
+             state.formData.photoURL = url;
+          } else if (type === 'cac') {
+            state.formData.cacURL = url;
+            state.formData.cacName = file.name;
+          }
           render();
         }
       };
-
+      
       window.handleAdminSearch = function(event) {
         state.adminSearch = event.target.value;
         render();
@@ -326,41 +575,48 @@
       
       window.viewApplication = function(id) {
         state.previewAppId = id;
-        render(); 
+        render();
       }
-
       window.closePreview = function() {
         state.previewAppId = null;
         render();
       }
-
-      window.updateStatus = function(id, newStatus) {
+      
+      // STAFF APPROVAL IMPLEMENTATION
+      window.updateStatus = async function(id, newStatus) {
         const app = state.applications.find(a => a.id === id);
         if (app) {
           app.status = newStatus;
           if (newStatus === "Approved") {
             app.issueDate = app.issueDate || iso(now());
             app.expiryDate = app.expiryDate || iso(addYears(1));
+            
+            // Log approval to backend
+            await saveToGoogleSheet("ApprovalLog", {
+                appId: app.id,
+                status: newStatus,
+                staffAction: "Approved",
+                timestamp: new Date().toLocaleString()
+            });
+            alert(`Application ${id} Approved Successfully`);
+          } else {
+             alert(`Application ${id} Rejected`);
           }
           render();
         }
       }
-
-      // --- Validation ---
+      
       function validateForm(type) {
         const { name, companyName, rcNumber, phone, photoURL, cacName } = state.formData;
         const errors = [];
-
-        // Enhanced phone validation
         const cleanPhone = phone.replace(/\D/g, '');
         if (cleanPhone.length !== 11) {
           errors.push(t("phoneError"));
         }
-
         if (type === 'artisan') {
           if (!name.trim()) errors.push(t("required"));
-          if (!photoURL) errors.push("Passport photo is required for ID card security.");
-        } 
+          if (!photoURL) errors.push("Passport photo is required.");
+        }
         else if (type === 'license') {
           const validSuffixes = ['ltd', 'limited', 'plc', 'enterprise', 'llc', 'venture', 'company', 'ltd.', 'inc'];
           const lowerName = companyName.toLowerCase().trim();
@@ -372,29 +628,38 @@
           if (!rcNumber.trim()) errors.push(t("required"));
           if (!cacName) errors.push("CAC Certificate is required.");
         }
-
         return errors;
       }
 
-      window.submitForm = function(type) {
+      window.submitForm = async function(type) {
         const errors = validateForm(type);
         if (errors.length > 0) {
           state.error = errors.join(" | ");
           render();
           return;
         }
-
         state.isLoading = true;
         render();
 
+        state.generatedId = type === 'artisan' 
+            ? `ART-${Math.floor(100000 + Math.random() * 900000)}`
+            : `YSM-${state.formData.rcNumber}`;
+        state.issueDate = new Date();
+        state.expiryDate = addYears(1);
+
+        const backendData = {
+            id: state.generatedId,
+            type: type,
+            status: "Pending",
+            ...state.formData,
+            issueDate: iso(state.issueDate),
+            expiryDate: iso(state.expiryDate)
+        };
+
+        await saveToGoogleSheet(type === 'artisan' ? "Artisans" : "Licenses", backendData);
+
         setTimeout(() => {
           state.isLoading = false;
-          state.generatedId = type === 'artisan' 
-            ? `ART-${Math.floor(100000 + Math.random() * 900000)}` 
-            : `YSM-${state.formData.rcNumber}`;
-          state.issueDate = new Date();
-          state.expiryDate = addYears(1);
-          
           const newApp = {
              id: Math.floor(Math.random() * 10000),
              name: type === 'artisan' ? state.formData.name : state.formData.companyName,
@@ -410,7 +675,6 @@
              flags: []
           };
           state.applications.unshift(newApp);
-
           setView("success");
         }, 1500);
       };
@@ -436,7 +700,6 @@
         state.currentUserRole = null;
         setView('landing');
       }
-
       window.downloadElement = async function(elementId, fileName) {
         const element = document.getElementById(elementId);
         if (!element) return;
@@ -451,12 +714,11 @@
           alert("Could not generate image. Please try again.");
         }
       };
-
+      
       // --- Helpers ---
       function Icon(name, className="w-5 h-5") {
         return `<i data-lucide="${name}" class="${className}"></i>`;
       }
-
       function renderInput(label, id, type="text", placeholder="", value="", oninput="", maxlength=null) {
         return `
           <div class="mb-4">
@@ -471,7 +733,6 @@
           </div>
         `;
       }
-
       function renderSelect(label, id, options, selectedValue, onchange) {
         return `
           <div class="mb-4">
@@ -489,7 +750,6 @@
           </div>
         `;
       }
-
       function renderHeader() {
         return `
           <header class="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white p-4 shadow-lg sticky top-0 z-50">
@@ -519,7 +779,109 @@
           </header>
         `;
       }
-
+      function renderDataEntryModal() {
+        if (!state.dataEntryModal.open) return '';
+        const { type } = state.dataEntryModal;
+        
+        let title = "Add Record";
+        let fields = "";
+        if (type === 'Revenue') {
+          title = "Record Revenue";
+          fields = `
+            ${renderInput("Amount (NGN)", "de-amount", "number", "0.00")}
+            ${renderSelect("Source", "de-source", ["Royalty", "Licensing Fee", "Penalty", "Export Levy"], "Royalty")}
+            ${renderInput("Reference ID", "de-ref", "text", "TXN-...")}
+          `;
+        } else if (type === 'Activity') {
+          title = "Log Activity";
+          fields = `
+            ${renderInput("Location (LGA/Site)", "de-loc", "text", "e.g. Potiskum Site A")}
+            ${renderSelect("Activity Type", "de-act", ["Exploration Survey", "Blasting", "Transport", "Inspection"], "Exploration Survey")}
+            ${renderInput("Notes/Details", "de-notes", "text", "Found deposits...")}
+          `;
+        } else if (type === 'Extraction') {
+          title = "Report Extraction";
+          fields = `
+            ${renderInput("Site ID", "de-site", "text", "SITE-...")}
+            ${renderInput("Tonnage (MT)", "de-ton", "number", "0")}
+            ${renderSelect("Mineral", "de-min", ["Gypsum", "Gold", "Limestone"], "Gypsum")}
+          `;
+        }
+        return `
+          <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in-up" onclick="if(event.target === this) closeDataEntry()">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+              <div class="bg-emerald-900 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold flex items-center gap-2">${Icon("plus-circle", "w-5 h-5")} ${title}</h3>
+                <button onclick="closeDataEntry()" class="hover:bg-emerald-800 p-1 rounded transition">${Icon("x", "w-5 h-5")}</button>
+              </div>
+              <div class="p-6">
+                ${fields}
+                <div class="flex gap-3 mt-4">
+                  <button onclick="closeDataEntry()" class="flex-1 py-3 border border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50">Cancel</button>
+                  <button id="data-submit-btn" onclick="submitDataEntry()" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700">Submit Entry</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      function renderExitLogModal() {
+        if (!state.exitLogModal.open) return '';
+        return `
+          <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in-up" onclick="if(event.target === this) closeExitLog()">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+              <div class="bg-emerald-900 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold flex items-center gap-2">${Icon("log-out", "w-5 h-5")} Log Exit</h3>
+                <button onclick="closeExitLog()" class="hover:bg-emerald-800 p-1 rounded transition">${Icon("x", "w-5 h-5")}</button>
+              </div>
+              <div class="p-6">
+                <div class="mb-4 relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Artisan/Company ID</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="exit-id" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" placeholder="ART-XXXXXX">
+                        <button onclick="openQRScanner('exitLog')" class="bg-blue-600 text-white px-4 rounded-xl hover:bg-blue-700 flex items-center justify-center">${Icon("scan", "w-5 h-5")}</button>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="exit-amount" class="w-2/3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="0">
+                        <select id="exit-unit" class="w-1/3 px-2 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="Grams">Grams</option>
+                            <option value="Kilograms">Kg</option>
+                            <option value="Tonnes">Tonnes</option>
+                        </select>
+                    </div>
+                </div>
+                ${renderSelect("Mineral Type", "exit-mineral", ["Gypsum", "Gold", "Limestone", "Diatomite", "Kaolin"], "Gypsum")}
+                <div class="flex gap-3 mt-4">
+                  <button onclick="closeExitLog()" class="flex-1 py-3 border border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50">Cancel</button>
+                  <button id="exit-submit-btn" onclick="submitExitLog()" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700">Submit Log</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      function renderQRScannerModal() {
+        if (!state.qrScannerModal.open) return '';
+        return `
+          <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in-up" onclick="if(event.target === this) closeQRScanner()">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+              <div class="bg-emerald-900 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold flex items-center gap-2">${Icon("scan", "w-5 h-5")} QR Code Scanner</h3>
+                <button onclick="closeQRScanner()" class="hover:bg-emerald-800 p-1 rounded transition">${Icon("x", "w-5 h-5")}</button>
+              </div>
+              <div class="p-6 flex flex-col items-center">
+                <video id="qr-video" class="w-full max-w-xs rounded-lg border border-gray-300" playsinline></video>
+                <canvas id="qr-canvas" class="hidden"></canvas>
+                ${state.scannedQR ? `<p class="mt-4 text-green-600">Scanned: ${state.scannedQR}</p>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
       // --- Render Functions ---
       function renderLanding() {
         return `
@@ -527,7 +889,6 @@
             <div class="relative bg-emerald-900 text-white overflow-hidden">
               <div class="absolute inset-0 bg-[url('${ASSETS.dashBg}')] bg-cover bg-center opacity-20"></div>
               <div class="absolute inset-0 bg-gradient-to-r from-emerald-900/90 to-emerald-800/80"></div>
-
               <div class="relative max-w-6xl mx-auto px-6 py-24 md:py-32 flex flex-col md:flex-row items-center">
                 <div class="md:w-1/2 mb-10 md:mb-0">
                   <div class="inline-block px-3 py-1 bg-yellow-400 text-emerald-900 text-xs font-bold rounded-full mb-4 uppercase tracking-wider">
@@ -556,7 +917,6 @@
           </div>
         `;
       }
-
       function renderArtisanForm() {
         return `
           <div class="max-w-xl w-full mx-auto px-4 py-8 animate-slide-in-right">
@@ -576,7 +936,7 @@
                   <div class="flex items-center gap-4">
                     <label class="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-3 rounded-xl border border-dashed border-gray-400 flex items-center gap-2 transition w-full justify-center">
                       ${Icon("camera", "w-5 h-5")} Upload Photo
-                      <input type="file" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                      <input type="file" accept="image/*" class="hidden" onchange="handlePhotoUpload(event, 'photo')">
                     </label>
                     ${state.formData.photoURL ? `<img src="${state.formData.photoURL}" class="w-12 h-12 rounded-full object-cover border-2 border-yellow-500 shadow-sm">` : ''}
                   </div>
@@ -590,7 +950,6 @@
           </div>
         `;
       }
-
       function renderLicenseForm() {
         return `
           <div class="max-w-xl w-full mx-auto px-4 py-8 animate-slide-in-right">
@@ -601,8 +960,8 @@
               </div>
               <div class="p-6">
                 ${state.error ? `<div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">${state.error}</div>` : ''}
-                ${renderInput(t("formCompany"), "inp-comp", "text", "e.g. Desert Mining Ltd", state.formData.companyName, "state.formData.companyName = this.value")}
-                ${renderInput(t("formRC"), "inp-rc", "text", "RC123456", state.formData.rcNumber, "state.formData.rcNumber = this.value")}
+                ${renderInput(t("formCompany"), "inp-comp", "text", "Desert Mining Ltd", state.formData.companyName, "state.formData.companyName = this.value")}
+                ${renderInput(t("formRC"), "inp-rc", "text", "123456", state.formData.rcNumber, "state.formData.rcNumber = this.value.replace(/\\D/g, '')")}
                 ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "state.formData.phone = this.value.replace(/\\D/g, '').slice(0, 11)", "11")}
                 ${renderSelect(t("formLocation"), "sel-lga", LGAs, state.formData.lga, "state.formData.lga = this.value")}
                 ${renderSelect(t("formMineral"), "sel-mineral", ["Gypsum", "Limestone", "Gold", "Diatomite", "Kaolin", "Potash"], state.formData.mineral, "state.formData.mineral = this.value")}
@@ -611,7 +970,7 @@
                   <label class="cursor-pointer bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-4 py-3 rounded-xl border border-dashed border-emerald-300 flex flex-col items-center gap-2 transition text-center">
                     ${Icon("upload-cloud", "w-8 h-8")}
                     <span class="text-sm font-medium">${state.formData.cacName || "Click to upload PDF/Image"}</span>
-                    <input type="file" accept="image/*,.pdf" class="hidden" onchange="handleCACUpload(event)">
+                    <input type="file" accept="image/*,.pdf" class="hidden" onchange="handlePhotoUpload(event, 'cac')">
                   </label>
                 </div>
                 <button onclick="submitForm('license')" class="w-full bg-emerald-800 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-emerald-900 transition flex justify-center items-center">
@@ -623,112 +982,138 @@
           </div>
         `;
       }
-
-      function renderSuccess() {
+      
+      // REUSED COMPONENT FOR SUCCESS OR SEARCH RESULT
+      function renderCertificateOrID() {
         const isArtisan = state.generatedId.startsWith('ART');
         const qrData = encodeURIComponent(`ID:${state.generatedId}|Name:${state.formData.name || state.formData.companyName}|Valid:${state.expiryDate}`);
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
         const logoUrl = ASSETS.miningLogo;
+        
+        const content = isArtisan ? `
+                <div id="download-target" class="relative w-[340px] h-[540px] bg-gradient-to-br from-green-800 to-green-950 rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col items-center pt-8 pb-4 px-6 border-2 border-yellow-500/50 cert-watermark">
+                  <div class="hologram-strip absolute inset-0 pointer-events-none z-20"></div>
+                  <div class="security-guilloche absolute inset-0 z-0 opacity-20"></div>
+                  <div class="watermark-ghost absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none font-bold text-6xl text-white/10 rotate-45">YOBE STATE</div>
+                  <div class="flex flex-col items-center mb-6 z-10 text-center relative">
+                    <img src="${logoUrl}" class="w-12 h-12 object-contain mb-2 drop-shadow-md rounded-full bg-white/10 p-1">
+                    <h1 class="text-lg font-bold font-serif text-yellow-400">YOBE STATE MINING COMPANY</h1>
+                    <div class="text-[10px] bg-yellow-500 text-black px-2 py-0.5 rounded font-bold mt-1 shadow-lg">CERTIFIED ARTISAN MINER</div>
+                  </div>
+                  <div class="w-32 h-32 rounded-full border-4 border-yellow-400 overflow-hidden shadow-lg mb-4 z-10 bg-gray-300 relative">
+                    <img src="${state.formData.photoURL}" class="w-full h-full object-cover">
+                    <div class="absolute -bottom-3 -right-3 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-white shadow-sm z-20">
+                        ${Icon("check", "w-5 h-5 text-emerald-900")}
+                    </div>
+                  </div>
+                  <div class="text-center z-10 w-full space-y-2">
+                    <div>
+                      <h2 class="text-xl font-bold text-white mb-1 uppercase tracking-wide drop-shadow-md">${state.formData.name}</h2>
+                      <div class="inline-block bg-black/30 backdrop-blur px-3 py-1 rounded-full border border-white/20">
+                          <p class="text-xs text-yellow-300 font-mono-security">${state.generatedId}</p>
+                      </div>
+                    </div>
+                    <div class="bg-white/10 rounded-lg p-2 flex justify-between items-center text-xs border border-white/20 mt-2 backdrop-blur-sm">
+                      <div class="text-left">
+                        <span class="block text-[9px] text-emerald-300 uppercase">LGA Location</span>
+                        <span class="font-bold">${state.formData.lga}</span>
+                      </div>
+                      <div class="text-right">
+                        <span class="block text-[9px] text-emerald-300 uppercase">Mineral</span>
+                        <span class="font-bold">${state.formData.mineral}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-auto pt-4 w-full flex justify-between items-end z-10">
+                      <div class="text-left">
+                        <span class="block text-[9px] text-emerald-400 uppercase">Expires</span>
+                        <span class="text-sm font-bold font-mono">${formatDate(state.expiryDate)}</span>
+                      </div>
+                      <div class="bg-white p-1 rounded shadow-lg">
+                        <img src="${qrUrl}" class="w-14 h-14">
+                      </div>
+                  </div>
+                </div>
+              ` : `
+                 <div id="download-target" class="relative w-[850px] bg-[#fffdf5] text-gray-800 p-12 shadow-2xl flex flex-col items-center font-serif aspect-[1.4/1] overflow-hidden cert-border cert-watermark">
+                    <div class="guilloche-border absolute inset-4 pointer-events-none opacity-50"></div>
+                    <div class="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none">
+                        <img src="${logoUrl}" class="w-[500px] h-[500px] object-contain grayscale">
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none transform -rotate-45">
+                        <span class="text-9xl font-bold">COPY</span>
+                    </div>
+                    <div class="hologram-strip absolute top-0 left-0 w-full h-20 pointer-events-none z-20"></div>
+                    <div class="w-full flex justify-between items-start mb-8 z-10 relative">
+                      <div class="flex flex-col items-center w-32">
+                          <img src="${logoUrl}" class="w-24 h-24 object-contain">
+                      </div>
+                      <div class="text-center flex-1">
+                        <h1 class="text-4xl font-black text-emerald-900 mb-2 tracking-tight">YOBE STATE MINING COMPANY</h1>
+                        <div class="inline-block border-b-2 border-emerald-600 pb-1 px-4">
+                            <div class="text-emerald-700 font-bold italic text-lg">Corporate Licensing Authority</div>
+                        </div>
+                      </div>
+                      <div class="w-32 flex justify-end">
+                           <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-double border-emerald-600 overflow-hidden shadow-sm p-2">
+                             <img src="${logoUrl}" class="w-full h-full object-contain">
+                           </div>
+                      </div>
+                    </div>
+                    <div class="z-10 text-center mb-8 relative">
+                        <h1 class="text-5xl font-bold text-yellow-600 mb-2 drop-shadow-sm font-serif">CERTIFICATE OF LICENSE</h1>
+                        <p class="text-gray-400 text-sm tracking-widest font-mono uppercase">License No: <span class="text-gray-800 font-bold">${state.generatedId}</span></p>
+                    </div>
+                    <div class="text-center max-w-3xl text-xl leading-relaxed z-10 mb-8 space-y-6 font-serif">
+                      <p>This is to certify that</p>
+                      <div class="relative py-4">
+                         <div class="text-4xl font-bold text-emerald-900 uppercase tracking-wide border-b-2 border-dotted border-gray-400 inline-block px-8 pb-2">
+                            ${state.formData.companyName}
+                         </div>
+                         <div class="text-sm text-gray-500 font-mono mt-2">RC Number: ${state.formData.rcNumber}</div>
+                      </div>
+                      <p>Has been granted a license for <strong class="text-emerald-800 underline">${state.formData.mineral}</strong> mining operations in <strong class="text-emerald-800 underline">${state.formData.lga}</strong> LGA.</p>
+                    </div>
+                    <div class="w-full mt-auto grid grid-cols-3 gap-12 items-end z-10 relative">
+                      <div class="text-center">
+                        <div class="bg-white p-2 inline-block border border-gray-200 shadow-sm">
+                            <img src="${qrUrl}" class="w-24 h-24">
+                        </div>
+                        <div class="text-[10px] text-gray-400 font-sans mt-1">Scan to Verify</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="w-24 h-24 rounded-full bg-yellow-500/10 border-2 border-yellow-500 flex items-center justify-center mx-auto mb-2 text-yellow-600 font-bold text-xs uppercase p-2 text-center leading-tight">
+                            Official Seal
+                        </div>
+                        <div class="text-sm font-bold text-red-600 uppercase">Valid Until: ${formatDate(state.expiryDate)}</div>
+                      </div>
+                      <div class="text-center">
+                         <div class="w-48 h-16 mx-auto mb-2 relative border-b border-gray-800">
+                           <div class="absolute inset-0 flex items-end justify-center font-serif italic text-2xl text-blue-900 pb-1">
+                                Signed
+                           </div>
+                         </div>
+                         <div class="font-bold text-xs uppercase tracking-wider text-gray-600">Managing Director</div>
+                         <div class="text-[10px] text-gray-400">Yobe State Mining Company</div>
+                      </div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-r from-emerald-800 via-yellow-500 to-emerald-800"></div>
+                 </div>
+              `;
+          return { content, isArtisan };
+      }
 
+      function renderSuccess() {
+        const { content, isArtisan } = renderCertificateOrID();
         return `
           <div class="flex-grow flex flex-col items-center py-10 px-4 bg-gray-100">
             <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 animate-bounce">
               ${Icon("check-circle", "w-10 h-10")}
             </div>
             <h2 class="text-2xl font-bold text-emerald-900 mb-8">${t("success")}</h2>
-
             <div class="w-full max-w-2xl mb-8 flex justify-center">
-              ${isArtisan ? `
-                <div id="download-target" class="relative w-[340px] h-[540px] bg-gradient-to-br from-green-800 to-green-950 rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col items-center pt-8 pb-4 px-6 border-2 border-yellow-500/50">
-                  <div class="hologram-overlay absolute inset-0 pointer-events-none z-20"></div>
-                  <div class="security-pattern absolute inset-0 z-0 opacity-20"></div>
-                  <div class="watermark-ghost absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">YOBE</div>
-
-                  <div class="flex flex-col items-center mb-6 z-10 text-center relative">
-                    <img src="${ASSETS.coatOfArms}" class="w-12 h-12 object-contain mb-2 drop-shadow-md">
-                    <h3 class="text-[10px] uppercase tracking-widest text-green-200">Federal Republic of Nigeria</h3>
-                    <h1 class="text-lg font-bold font-serif text-yellow-400">YOBE STATE GOVERNMENT</h1>
-                    <div class="text-[10px] bg-yellow-500 text-black px-2 py-0.5 rounded font-bold mt-1 shadow-lg">CERTIFIED ARTISAN MINER</div>
-                  </div>
-                  <div class="w-32 h-32 rounded-full border-4 border-yellow-400 overflow-hidden shadow-lg mb-4 z-10 bg-gray-300 relative">
-                    <img src="${state.formData.photoURL || ASSETS.miningLogo}" class="w-full h-full object-cover">
-                  </div>
-                  <div class="text-center z-10 w-full space-y-2">
-                    <div>
-                      <h2 class="text-xl font-bold text-white truncate drop-shadow-md">${state.formData.name}</h2>
-                      <p class="text-xs text-green-300 uppercase font-bold">${state.formData.lga} LGA</p>
-                    </div>
-                    <div class="bg-white/10 rounded-lg p-2 flex justify-between items-center text-xs border border-white/20 mt-2 backdrop-blur-sm">
-                      <div class="text-left">
-                        <div class="text-green-300 text-[10px]">Mineral</div>
-                        <div class="font-bold text-yellow-300">${state.formData.mineral}</div>
-                      </div>
-                       <div class="text-right">
-                        <div class="text-green-300 text-[10px]">ID Number</div>
-                        <div class="font-mono font-bold text-white tracking-widest">${state.generatedId}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="mt-auto z-10 w-full flex justify-between items-end">
-                     <div class="text-left">
-                       <div class="text-[10px] text-green-400">Expires</div>
-                       <div class="text-sm font-bold">${formatDate(state.expiryDate)}</div>
-                     </div>
-                     <div class="bg-white p-1 rounded shadow-lg">
-                       <img src="${qrUrl}" class="w-14 h-14">
-                     </div>
-                  </div>
-                </div>
-              ` : `
-                 <div id="download-target" class="relative w-[800px] bg-[#fcfbf7] text-gray-800 p-10 border-[10px] border-double border-emerald-900 shadow-2xl flex flex-col items-center font-serif aspect-[1.4/1] overflow-hidden">
-                    <div class="guilloche-border absolute inset-4 pointer-events-none opacity-50"></div>
-                    <div class="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
-                        <img src="${logoUrl}" class="w-[500px] h-[500px] object-contain grayscale">
-                    </div>
-                    <div class="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none transform -rotate-45">
-                        <span class="text-9xl font-bold">COPY</span>
-                    </div>
-
-                    <div class="w-full flex justify-between items-start border-b-2 border-emerald-800 pb-4 mb-8 z-10">
-                      <img src="${ASSETS.coatOfArms}" class="w-20">
-                      <div class="text-center">
-                        <h2 class="text-sm uppercase tracking-[0.2em] text-gray-500">Federal Republic of Nigeria</h2>
-                        <h1 class="text-3xl font-bold text-emerald-900 mt-1">YOBE STATE GOVERNMENT</h1>
-                        <div class="text-emerald-700 font-bold italic mt-1">Ministry of Mineral Resources</div>
-                      </div>
-                       <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center border-2 border-emerald-600 overflow-hidden p-2">
-                          <img src="${logoUrl}" class="w-full h-full object-contain">
-                       </div>
-                    </div>
-                    <h1 class="text-4xl font-bold text-yellow-600 mb-6 z-10 underline decoration-double underline-offset-4 tracking-wide">${t("certTitle")}</h1>
-                    <div class="text-center max-w-2xl text-lg leading-relaxed z-10 mb-8 space-y-4">
-                      <p>${t("certBody")}</p>
-                      <div class="my-6 py-4 border-t border-b border-gray-300 bg-emerald-50/50">
-                         <div class="text-3xl font-bold text-emerald-900 mb-1 uppercase tracking-tight">${state.formData.companyName}</div>
-                         <div class="font-mono text-gray-500 text-sm tracking-widest">RC: ${state.formData.rcNumber}</div>
-                      </div>
-                      <p>Has been granted a license for <strong class="text-emerald-800 underline">${state.formData.mineral}</strong> mining operations in <strong class="text-emerald-800 underline">${state.formData.lga}</strong> LGA.</p>
-                    </div>
-                    <div class="w-full mt-auto grid grid-cols-3 gap-8 items-end z-10">
-                      <div class="text-center">
-                        <img src="${qrUrl}" class="w-24 h-24 mx-auto border p-1 bg-white mb-2 shadow-sm">
-                        <div class="text-xs text-gray-400 font-sans">Scan to Verify</div>
-                      </div>
-                      <div class="text-center font-sans">
-                        <div class="text-xs text-gray-500 uppercase mb-1">${t("validUntil")}</div>
-                        <div class="text-xl font-bold text-red-600">${formatDate(state.expiryDate)}</div>
-                      </div>
-                      <div class="text-center">
-                         <div class="w-32 h-12 mx-auto mb-2 relative">
-                           <div class="absolute inset-0 flex items-center justify-center font-cursive text-2xl text-blue-900 rotate-[-10deg] opacity-80" style="font-family: cursive;">Signed</div>
-                         </div>
-                         <div class="border-t border-gray-800 pt-1 font-bold text-sm uppercase">${t("signature")}</div>
-                      </div>
-                    </div>
-                 </div>
-              `}
+              ${content}
             </div>
-
             <div class="flex gap-4">
               <button onclick="downloadElement('download-target', '${isArtisan ? 'MinerID' : 'MiningLicense'}')" class="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg transition flex items-center gap-2">
                 ${Icon("download")} ${isArtisan ? t("downloadID") : t("downloadCert")}
@@ -741,209 +1126,55 @@
         `;
       }
 
-      function renderMDDashboard() {
-         const pipeline = state.dataOps.status;
-         const pipelineColor = pipeline === "OK" ? "text-green-500" : "text-red-500";
-         
-         // CCTV Sources (Static Images used as "feeds")
-         const feeds = [
-           { url: "https://embed.skylinewebcams.com/img/992.jpg", name: "TSAVO EAST (KENYA)" },
-           { url: "https://embed.skylinewebcams.com/img/165.jpg", name: "ROME PANTHEON" },
-           { url: "https://embed.skylinewebcams.com/img/607.jpg", name: "PIAZZA VENEZIA" },
-           { url: "https://embed.skylinewebcams.com/img/4309.jpg", name: "DIANI BEACH" }
-         ];
-
-         return `
-           <div class="min-h-screen bg-gray-50 text-gray-800 pb-12 animate-fade-in-up font-sans">
-              <div class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-                 <div class="flex items-center">
-                    <div class="p-2 bg-emerald-100 rounded-lg mr-3">
-                       ${Icon("shield", "w-6 h-6 text-emerald-700")}
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-900 tracking-tight">${t("mdDashboard")}</h2>
-                        <div class="text-xs text-gray-500 flex items-center gap-1">
-                          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                          System Operational
-                        </div>
-                    </div>
-                 </div>
-                 <div class="flex items-center space-x-6">
-                    <button onclick="setView('digital-suite')" class="hidden md:flex items-center gap-2 text-xs bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl hover:bg-gray-200 transition text-gray-600 font-bold">
-                       ${Icon("layout-dashboard","w-4 h-4")} ${t("digitalSuite")}
-                    </button>
-                    <div class="text-right hidden md:block">
-                        <div class="text-xs text-gray-400 uppercase font-bold tracking-wider">Local Time</div>
-                        <div class="text-lg font-mono font-bold text-gray-800 live-time">${state.timeString}</div>
-                    </div>
-                    <button onclick="logout()" class="flex items-center bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 px-4 py-2 rounded-xl transition-colors text-sm font-bold border border-gray-200">
-                       ${Icon("log-out","w-4 h-4 mr-2")} ${t("logout")}
-                    </button>
-                 </div>
-              </div>
-
-              <div class="max-w-[1600px] mx-auto p-8">
-                 <!-- Stats Row -->
-                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                       <div class="flex justify-between items-start mb-4">
-                          <div>
-                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Revenue</p>
-                             <h3 class="text-3xl font-bold text-gray-900 mt-1">₦ 84.5M</h3>
-                          </div>
-                          <div class="p-3 bg-green-50 text-green-600 rounded-xl">${Icon("banknote", "w-6 h-6")}</div>
-                       </div>
-                       <p class="text-xs text-green-600 mt-2 font-medium">+14% vs last month</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                       <div class="flex justify-between items-start mb-4">
-                          <div>
-                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Compliance Score</p>
-                             <h3 class="text-3xl font-bold text-gray-900 mt-1">98%</h3>
-                          </div>
-                          <div class="p-3 bg-yellow-50 text-yellow-600 rounded-xl">${Icon("shield-check", "w-6 h-6")}</div>
-                       </div>
-                       <p class="text-xs text-gray-500 mt-2 font-medium">3 active flags</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                       <div class="flex justify-between items-start mb-4">
-                          <div>
-                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Sites</p>
-                             <h3 class="text-3xl font-bold text-gray-900 mt-1">${state.ops.extraction.activeSites}</h3>
-                          </div>
-                          <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">${Icon("map-pin", "w-6 h-6")}</div>
-                       </div>
-                       <p class="text-xs text-blue-600 mt-2 font-medium">12 new sites added</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                       <div class="flex justify-between items-start mb-4">
-                          <div>
-                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Data Pipeline</p>
-                             <h3 class="text-3xl font-bold text-gray-900 mt-1">${pipeline}</h3>
-                          </div>
-                          <div class="p-3 bg-purple-50 text-purple-600 rounded-xl">${Icon("database", "w-6 h-6")}</div>
-                       </div>
-                       <p class="text-xs ${pipelineColor} mt-2 font-medium">${state.dataOps.ingestRatePerMin} events/min</p>
-                    </div>
-                 </div>
-
-                 <div class="grid grid-cols-12 gap-8">
-                    <!-- LEFT COLUMN: MAP -->
-                    <div class="col-span-12 lg:col-span-8 space-y-8">
-                       <!-- LIVE GOOGLE MAP -->
-                       <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md relative h-[600px]">
-                          <div class="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-xs border border-gray-200 shadow-sm flex items-center gap-2">
-                             <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                             <span class="font-bold text-gray-700">LIVE SATELLITE: YOBE STATE</span>
-                          </div>
-                          <iframe 
-                             width="100%" 
-                             height="100%" 
-                             frameborder="0" 
-                             style="border:0" 
-                             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1005999.578656606!2d11.3!3d12.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x11049f0b12345678%3A0x1234567890abcdef!2sYobe%20State!5e0!3m2!1sen!2sng!4v1610000000000!5m2!1sen!2sng" 
-                             allowfullscreen>
-                          </iframe>
-                       </div>
-                    </div>
-
-                    <!-- RIGHT COLUMN: CCTV -->
-                    <div class="col-span-12 lg:col-span-4 space-y-6">
-                       <!-- LIVE CCTV FEED -->
-                       <div class="bg-gray-900 rounded-2xl overflow-hidden shadow-xl border border-gray-800">
-                          <div class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
-                             <span class="text-xs font-bold text-gray-300 flex items-center gap-2">
-                                ${Icon("camera", "w-3 h-3")} SITE SURVEILLANCE
-                             </span>
-                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-red-500 blink-red"></span>
-                                <span class="text-[10px] font-mono text-red-400">REC</span>
-                             </div>
-                          </div>
-                          
-                          <div class="grid grid-cols-2 gap-0.5 bg-black p-0.5">
-                             ${feeds.map(feed => `
-                               <div class="relative aspect-video bg-gray-800 group overflow-hidden">
-                                  <img 
-                                    src="${feed.url}" 
-                                    data-original-src="${feed.url}"
-                                    class="cctv-live-img w-full h-full object-cover opacity-90 group-hover:opacity-100 transition duration-500"
-                                  />
-                                  <div class="absolute top-2 left-2 text-[8px] bg-black/60 text-white px-1.5 py-0.5 rounded backdrop-blur font-mono">${feed.name}</div>
-                                  <div class="absolute bottom-2 right-2 text-[8px] font-mono text-white/80 live-time">${state.timeString}</div>
-                                  <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                      <div class="w-8 h-8 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                                        <div class="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
-                                      </div>
-                                  </div>
-                               </div>
-                             `).join('')}
-                          </div>
-                          <div class="px-4 py-2 bg-gray-800 text-[10px] text-gray-400 font-mono text-center">
-                             Feeds auto-refreshing every 5s | Secure Connection
-                          </div>
-                       </div>
-
-                       <!-- COMPLIANCE WIDGET -->
-                       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                          <h4 class="font-bold text-gray-800 mb-4 flex items-center justify-between">
-                             <div class="flex items-center gap-2">${Icon("bell-ring","w-4 h-4 text-yellow-500")} Auto Flags</div>
-                             <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">3 active</span>
-                          </h4>
-                          <div class="space-y-3">
-                             <div class="flex gap-3 items-start border-l-2 border-red-500 pl-3 py-1">
-                                <div class="text-[10px] text-gray-400 font-mono mt-0.5">Now</div>
-                                <div>
-                                   <div class="text-xs font-bold text-gray-800">Expired License</div>
-                                   <div class="text-[10px] text-gray-500">Desert Sands Ltd (RC99882)</div>
-                                </div>
-                             </div>
-                             <div class="flex gap-3 items-start border-l-2 border-yellow-500 pl-3 py-1">
-                                <div class="text-[10px] text-gray-400 font-mono mt-0.5">2m ago</div>
-                                <div>
-                                   <div class="text-xs font-bold text-gray-800">Unregistered Machine</div>
-                                   <div class="text-[10px] text-gray-500">Excavator in Zone 4</div>
-                                </div>
-                             </div>
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </div>
-        `;
-      }
-
+      // --- Digital Suite Render ---
       function renderDigitalSuite() {
          const activeTab = state.dsTab;
          
-         // Demo Content for each tab (Access Fixed/Unlocked)
          const contents = {
-             explore: `
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
-                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">${Icon("map", "text-emerald-600")} Geological Exploration GIS</h3>
-                    <div class="bg-gray-100 rounded-xl h-64 flex items-center justify-center text-gray-400 mb-4 border border-dashed border-gray-300">
-                        Interactive GIS Map Placeholder
+             activity: `
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up relative">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-lg flex items-center gap-2">${Icon("clipboard-list", "text-emerald-600")} ${t("dsActivity")}</h3>
+                        <button onclick="openDataEntry('Activity')" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 flex items-center gap-1 shadow-sm">
+                            ${Icon("plus", "w-3 h-3")} Add Record
+                        </button>
                     </div>
-                    <div class="grid grid-cols-3 gap-4 text-sm">
-                        <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-gray-500 text-xs">Active Surveys</div>
-                            <div class="font-bold text-gray-900 text-xl">12</div>
-                        </div>
-                        <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-gray-500 text-xs">Soil Samples</div>
-                            <div class="font-bold text-gray-900 text-xl">1,204</div>
-                        </div>
-                        <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-gray-500 text-xs">Drill Targets</div>
-                            <div class="font-bold text-gray-900 text-xl">7</div>
-                        </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th class="px-4 py-3">Date</th>
+                                    <th class="px-4 py-3">Location</th>
+                                    <th class="px-4 py-3">Activity</th>
+                                    <th class="px-4 py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr>
+                                    <td class="px-4 py-3">${iso(now())}</td>
+                                    <td class="px-4 py-3">Damaturu Site A</td>
+                                    <td class="px-4 py-3">Geological Survey</td>
+                                    <td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">Completed</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3">${iso(addDays(-1))}</td>
+                                    <td class="px-4 py-3">Fika Zone 3</td>
+                                    <td class="px-4 py-3">Machinery Inspection</td>
+                                    <td class="px-4 py-3"><span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">Pending</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
              `,
              extract: `
                 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
-                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">${Icon("truck", "text-blue-600")} Extraction & Fleet Management</h3>
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-lg flex items-center gap-2">${Icon("truck", "text-blue-600")} Extraction & Fleet Management</h3>
+                         <button onclick="openDataEntry('Extraction')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
+                            ${Icon("plus", "w-3 h-3")} Report Extraction
+                        </button>
+                    </div>
                     <div class="space-y-4">
                         <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                             <div class="flex items-center gap-3">
@@ -965,20 +1196,6 @@
                             </div>
                             <div class="text-xs font-mono bg-red-100 text-red-700 px-2 py-1 rounded">OFFLINE</div>
                         </div>
-                    </div>
-                </div>
-             `,
-             logistics: `
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
-                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">${Icon("route", "text-orange-600")} Supply Chain Logistics</h3>
-                    <p class="text-gray-600 mb-4">Tracking mineral movement from extraction point to processing facilities.</p>
-                    <div class="w-full bg-gray-100 rounded-full h-2 mb-6 overflow-hidden">
-                        <div class="bg-orange-500 h-full w-[65%]"></div>
-                    </div>
-                    <div class="flex justify-between text-sm font-medium">
-                        <span>Extraction (Site A)</span>
-                        <span class="text-orange-600">In Transit (31 Trucks)</span>
-                        <span>Processing (Zone B)</span>
                     </div>
                 </div>
              `,
@@ -1014,7 +1231,6 @@
                 </div>
              `
          };
-
          return `
            <div class="animate-fade-in-up">
              <div class="bg-gradient-to-r from-gray-900 to-emerald-900 text-white">
@@ -1029,16 +1245,13 @@
                  </div>
                </div>
              </div>
-
              <div class="max-w-6xl mx-auto px-6 py-8">
                <div class="flex flex-wrap gap-2 mb-6">
-                 ${tabBtn("explore", t("dsExplore"), "map")}
+                 ${tabBtn("activity", t("dsActivity"), "clipboard-list")}
                  ${tabBtn("extract", t("dsExtract"), "truck")}
-                 ${tabBtn("logistics", t("dsLogistics"), "route")}
                  ${tabBtn("data", t("dsData"), "database")}
                  ${tabBtn("compliance", t("dsCompliance"), "shield-check")}
                </div>
-
                ${contents[activeTab]}
                
                <div class="mt-8 flex gap-3">
@@ -1047,10 +1260,257 @@
                   </button>
                </div>
              </div>
+             
+             ${renderDataEntryModal()}
            </div>
          `;
       }
-
+      function renderApplicationPreviewModal() {
+        const a = state.applications.find(x => x.id === state.previewAppId);
+        if (!a) return '';
+        const isArtisan = a.type === 'Artisan';
+        const qrData = encodeURIComponent(`ID:${a.id}|Name:${a.name}`);
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+        const logoUrl = ASSETS.miningLogo;
+        const cardContent = isArtisan ? `
+          <div class="relative w-[300px] h-[480px] bg-gradient-to-br from-green-800 to-green-950 rounded-xl shadow-2xl overflow-hidden text-white flex flex-col items-center pt-6 pb-4 px-4 border border-yellow-500/30 mx-auto">
+             <div class="flex flex-col items-center mb-4 z-10 text-center">
+                <img src="${logoUrl}" class="w-12 h-12 object-contain mb-1 rounded-full bg-white/10 p-1">
+                <h1 class="text-sm font-bold font-serif text-yellow-400">YOBE STATE MINING COMPANY</h1>
+             </div>
+             <div class="w-24 h-24 rounded-full border-2 border-yellow-400 overflow-hidden shadow-lg mb-2 z-10 bg-gray-300">
+                <img src="${a.photoURL || ASSETS.miningLogo}" class="w-full h-full object-cover">
+             </div>
+             <div class="text-center z-10 w-full">
+                <h2 class="text-lg font-bold text-white truncate">${a.name}</h2>
+                <p class="text-xs text-green-300 uppercase">${a.location} LGA</p>
+                <div class="bg-white/10 rounded p-1 flex justify-between items-center text-[10px] border border-white/10 mt-2">
+                   <div class="text-left"><div>Mineral</div><div class="font-bold text-yellow-300">${a.mineral}</div></div>
+                   <div class="text-right"><div>ID</div><div class="font-mono font-bold text-white">ART-${a.id}</div></div>
+                </div>
+             </div>
+             <div class="mt-auto z-10 w-full flex justify-between items-end">
+                <div class="bg-white p-1 rounded"><img src="${qrUrl}" class="w-12 h-12"></div>
+             </div>
+          </div>
+        ` : `
+          <div class="relative w-full bg-[#fcfbf7] text-gray-800 p-6 border-[4px] border-double border-emerald-800 shadow-xl flex flex-col items-center font-serif">
+             <div class="w-full flex justify-between items-start border-b border-emerald-800 pb-2 mb-4">
+                <img src="${logoUrl}" class="w-16 h-16 object-contain">
+                <div class="text-center">
+                   <h1 class="text-xl font-bold text-emerald-900">YOBE STATE MINING COMPANY</h1>
+                   <div class="text-[10px] text-emerald-700 font-bold italic">Corporate Licensing Authority</div>
+                </div>
+             </div>
+             <h1 class="text-2xl font-bold text-yellow-600 mb-4 underline decoration-double">LICENSE CERTIFICATE</h1>
+             <div class="text-center text-sm mb-4">
+                <p>Certified that <strong class="text-emerald-900">${a.name}</strong> (RC:${a.rcNumber || 'N/A'}) is authorized for <strong>${a.mineral}</strong> mining in <strong>${a.location}</strong>.</p>
+             </div>
+             <div class="mt-auto w-full flex justify-between items-end">
+                <img src="${qrUrl}" class="w-16 h-16 border p-1 bg-white">
+                <div class="text-center"><div class="text-xl font-cursive text-blue-900">Signed</div><div class="border-t border-gray-800 text-[10px] uppercase">Managing Director</div></div>
+             </div>
+          </div>
+        `;
+        return `
+          <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in-up" onclick="if(event.target === this) closePreview()">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+              <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="font-bold text-gray-800">Application #${a.id} Documents</h3>
+                <button onclick="closePreview()" class="text-gray-500 hover:text-gray-800">${Icon("x", "w-6 h-6")}</button>
+              </div>
+              <div class="p-8 bg-gray-200 flex justify-center">
+                ${cardContent}
+              </div>
+              <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                <button onclick="closePreview()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
+                ${a.status === 'Pending' ? `
+                  <button onclick="updateStatus(${a.id}, 'Rejected'); closePreview()" class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-medium">Reject</button>
+                  <button onclick="updateStatus(${a.id}, 'Approved'); closePreview()" class="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg font-bold shadow">Approve</button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      function renderMDDashboard() {
+         const pipeline = state.dataOps.status;
+         const pipelineColor = pipeline === "OK" ? "text-green-500" : "text-red-500";
+         
+         const feeds = [
+           { url: "https://embed.skylinewebcams.com/img/992.jpg", name: "TSAVO EAST (KENYA)" },
+           { url: "https://embed.skylinewebcams.com/img/165.jpg", name: "ROME PANTHEON" },
+           { url: "https://embed.skylinewebcams.com/img/607.jpg", name: "PIAZZA VENEZIA" },
+           { url: "https://embed.skylinewebcams.com/img/4309.jpg", name: "DIANI BEACH" }
+         ];
+         return `
+           <div class="min-h-screen bg-gray-50 text-gray-800 pb-12 animate-fade-in-up font-sans">
+              <div class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                 <div class="flex items-center">
+                    <div class="p-2 bg-emerald-100 rounded-lg mr-3">
+                       ${Icon("shield", "w-6 h-6 text-emerald-700")}
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900 tracking-tight">${t("mdDashboard")}</h2>
+                        <div class="text-xs text-gray-500 flex items-center gap-1">
+                          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                          System Operational
+                        </div>
+                    </div>
+                 </div>
+                 <div class="flex items-center space-x-6">
+                    <button onclick="setView('digital-suite')" class="hidden md:flex items-center gap-2 text-xs bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl hover:bg-gray-200 transition text-gray-600 font-bold">
+                       ${Icon("layout-dashboard","w-4 h-4")} ${t("digitalSuite")}
+                    </button>
+                    <div class="text-right hidden md:block">
+                        <div class="text-xs text-gray-400 uppercase font-bold tracking-wider">Local Time</div>
+                        <div class="text-lg font-mono font-bold text-gray-800 live-time">${state.timeString}</div>
+                    </div>
+                    <button onclick="logout()" class="flex items-center bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 px-4 py-2 rounded-xl transition-colors text-sm font-bold border border-gray-200">
+                       ${Icon("log-out","w-4 h-4 mr-2")} ${t("logout")}
+                    </button>
+                 </div>
+              </div>
+              <div class="max-w-[1600px] mx-auto p-8">
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group">
+                       <div class="flex justify-between items-start mb-4 relative z-10">
+                          <div>
+                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Revenue</p>
+                             <h3 class="text-3xl font-bold text-gray-900 mt-1">₦ 84.5M</h3>
+                          </div>
+                           <div class="p-3 bg-green-50 text-green-600 rounded-xl">${Icon("banknote", "w-6 h-6")}</div>
+                       </div>
+                       <p class="text-xs text-green-600 mt-2 font-medium relative z-10">+14% vs last month</p>
+                       <button onclick="openDataEntry('Revenue')" class="absolute bottom-4 right-4 text-xs bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-700 px-2 py-1 rounded transition z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                          ${Icon("plus", "w-3 h-3")} Update
+                       </button>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                       <div class="flex justify-between items-start mb-4">
+                          <div>
+                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Compliance Score</p>
+                             <h3 class="text-3xl font-bold text-gray-900 mt-1">98%</h3>
+                          </div>
+                           <div class="p-3 bg-yellow-50 text-yellow-600 rounded-xl">${Icon("shield-check", "w-6 h-6")}</div>
+                       </div>
+                       <p class="text-xs text-gray-500 mt-2 font-medium">3 active flags</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                       <div class="flex justify-between items-start mb-4">
+                          <div>
+                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Sites</p>
+                             <h3 class="text-3xl font-bold text-gray-900 mt-1">${state.ops.extraction.activeSites}</h3>
+                          </div>
+                           <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">${Icon("map-pin", "w-6 h-6")}</div>
+                       </div>
+                       <p class="text-xs text-blue-600 mt-2 font-medium">12 new sites added</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                       <div class="flex justify-between items-start mb-4">
+                          <div>
+                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Data Pipeline</p>
+                             <h3 class="text-3xl font-bold text-gray-900 mt-1">${pipeline}</h3>
+                          </div>
+                           <div class="p-3 bg-purple-50 text-purple-600 rounded-xl">${Icon("database", "w-6 h-6")}</div>
+                       </div>
+                       <p class="text-xs ${pipelineColor} mt-2 font-medium">${state.dataOps.ingestRatePerMin} events/min</p>
+                    </div>
+                 </div>
+                 <div class="grid grid-cols-12 gap-8">
+                    <div class="col-span-12 lg:col-span-8 space-y-8">
+                       <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md relative h-[600px]">
+                          <div class="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-xs border border-gray-200 shadow-sm flex items-center gap-2">
+                             <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                             <span class="font-bold text-gray-700">LIVE SATELLITE: ACTIVE MINERS TRACKING</span>
+                          </div>
+                          
+                          <div class="absolute top-1/2 left-1/2 w-full h-full transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
+                             <div class="miner-dot" style="top: 40%; left: 45%;"></div>
+                             <div class="miner-dot" style="top: 42%; left: 48%; animation-delay: 0.5s"></div>
+                             <div class="miner-dot" style="top: 38%; left: 52%; animation-delay: 1.2s"></div>
+                             <div class="miner-dot" style="top: 60%; left: 30%;"></div>
+                             <div class="miner-dot" style="top: 62%; left: 32%; animation-delay: 0.8s"></div>
+                             <div class="miner-dot" style="top: 25%; left: 70%; animation-delay: 0.3s"></div>
+                             <div class="miner-dot" style="top: 28%; left: 72%; animation-delay: 1.5s"></div>
+                             <div class="miner-dot" style="top: 26%; left: 68%; animation-delay: 0.9s"></div>
+                          </div>
+                          <iframe
+                             width="100%"
+                             height="100%"
+                             frameborder="0"
+                             style="border:0"
+                             src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1005999.578656606!2d11.5!3d12.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sen!2sng!4v1610000000000!5m2!1sen!2sng"
+                             allowfullscreen>
+                          </iframe>
+                       </div>
+                    </div>
+                    <div class="col-span-12 lg:col-span-4 space-y-6">
+                       <div class="bg-gray-900 rounded-2xl overflow-hidden shadow-xl border border-gray-800">
+                          <div class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+                             <span class="text-xs font-bold text-gray-300 flex items-center gap-2">
+                                ${Icon("camera", "w-3 h-3")} SITE SURVEILLANCE
+                             </span>
+                             <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-red-500 blink-red"></span>
+                                <span class="text-[10px] font-mono text-red-400">REC</span>
+                             </div>
+                          </div>
+                          
+                          <div class="grid grid-cols-2 gap-0.5 bg-black p-0.5">
+                             ${feeds.map(feed => `
+                               <div class="relative aspect-video bg-gray-800 group overflow-hidden">
+                                  <img 
+                                    src="${feed.url}" 
+                                    data-original-src="${feed.url}"
+                                    class="cctv-live-img w-full h-full object-cover opacity-90 group-hover:opacity-100 transition duration-500" 
+                                  />
+                                  <div class="absolute top-2 left-2 text-[8px] bg-black/60 text-white px-1.5 py-0.5 rounded backdrop-blur font-mono">${feed.name}</div>
+                                  <div class="absolute bottom-2 right-2 text-[8px] font-mono text-white/80 live-time">${state.timeString}</div>
+                                  <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <div class="w-8 h-8 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                                        <div class="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
+                                      </div>
+                                  </div>
+                               </div>
+                             `).join('')}
+                          </div>
+                          <div class="px-4 py-2 bg-gray-800 text-[10px] text-gray-400 font-mono text-center">
+                             Feeds auto-refreshing every 5s | Secure Connection
+                          </div>
+                       </div>
+                       <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                         <div class="flex justify-between items-center mb-4">
+                           <h3 class="font-bold text-lg flex items-center gap-2">${Icon("users", "w-5 h-5 text-blue-600")} On-Site Artisans</h3>
+                           <button onclick="openQRScanner()" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1">
+                             ${Icon("scan", "w-4 h-4")} Scan QR
+                           </button>
+                         </div>
+                         <ul class="space-y-2 max-h-40 overflow-y-auto custom-scroll">
+                           ${state.onSiteArtisans.length > 0 ? state.onSiteArtisans.map(id => `<li class="p-2 bg-gray-50 rounded-lg text-sm flex items-center gap-2">${Icon("user", "w-4 h-4 text-green-600")} ${id}</li>`).join('') : '<p class="text-gray-500 text-sm">No artisans on site</p>'}
+                         </ul>
+                       </div>
+                       <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                         <div class="flex justify-between items-center mb-4">
+                           <h3 class="font-bold text-lg flex items-center gap-2">${Icon("log-out", "w-5 h-5 text-red-600")} Exit Logs</h3>
+                           <button onclick="openExitLog()" class="bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-700 flex items-center gap-1">
+                             ${Icon("plus", "w-4 h-4")} Add Log
+                           </button>
+                         </div>
+                         <ul class="space-y-2 max-h-40 overflow-y-auto custom-scroll">
+                           ${state.exitLogs.length > 0 ? state.exitLogs.map(log => `<li class="p-2 bg-gray-50 rounded-lg text-sm">ID: ${log.id} | ${log.amount} ${log.mineral} | ${log.time}</li>`).join('') : '<p class="text-gray-500 text-sm">No exit logs</p>'}
+                         </ul>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+              
+              ${renderDataEntryModal()}
+              ${renderExitLogModal()}
+              ${renderQRScannerModal()}
+           </div>
+        `;
+      }
       function tabBtn(tab, label, icon) {
         const active = state.dsTab === tab;
         return `
@@ -1059,7 +1519,6 @@
           </button>
         `;
       }
-
       function renderAdminLogin() {
         return `
           <div class="min-h-[70vh] flex items-center justify-center p-4">
@@ -1087,24 +1546,11 @@
           </div>
         `;
       }
-
-      function renderAdminDashboard() {
-         return `
-           <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-             <div class="text-center p-8">
-               <h1 class="text-2xl font-bold text-gray-800 mb-4">Staff Dashboard</h1>
-               <p class="text-gray-600 mb-6">Restricted access area. Please login as MD (Pin: 3333) for full features.</p>
-               <button onclick="setView('landing')" class="bg-emerald-600 text-white px-6 py-2 rounded-lg">Return Home</button>
-             </div>
-           </div>
-         `;
-      }
-
       // --- Main Render Loop ---
       function render() {
         let content = "";
         if (state.view === "landing") content = renderLanding();
-        else if (state.view === "miner-portal") content = renderMinerPortal(); // Defined in previous steps, ensuring reused
+        else if (state.view === "miner-portal") content = renderMinerPortal(); 
         else if (state.view === "digital-suite") content = renderDigitalSuite();
         else if (state.view === "artisan-form") content = renderArtisanForm();
         else if (state.view === "license-form") content = renderLicenseForm();
@@ -1113,37 +1559,64 @@
             <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
             <div class="bg-white rounded-2xl shadow-xl p-6 text-center">
               <h2 class="text-xl font-bold text-gray-800 mb-2">${t("checkStatusTitle")}</h2>
-              <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4" placeholder="Enter ID..." />
-              <button onclick="alert('No record found')" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Check</button>
+              <input id="status-input" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4" placeholder="Enter ID..." />
+              <div id="status-msg"></div>
+              <button id="status-btn" onclick="checkStatus()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Check</button>
             </div>
-          </div>`; // Simplified inline
+          </div>`;
         else if (state.view === "renew-check") content = `
           <div class="max-w-md w-full mx-auto px-4 py-8 animate-slide-in-right">
             <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
             <div class="bg-white rounded-2xl shadow-xl p-6 text-center">
               <h2 class="text-xl font-bold text-gray-800 mb-2">${t("renewTitle")}</h2>
-              <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4" placeholder="License Number" />
-              <button onclick="alert('System up to date')" class="w-full bg-orange-600 text-white py-3 rounded-xl font-bold">Proceed</button>
+              <input id="renew-input" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4" placeholder="License Number" />
+              <div id="renew-msg"></div>
+              <button id="renew-btn" onclick="checkRenew()" class="w-full bg-orange-600 text-white py-3 rounded-xl font-bold">Proceed</button>
             </div>
-          </div>`; // Simplified inline
+          </div>`;
+        else if (state.view === "search-success") {
+            const { content, isArtisan } = renderCertificateOrID();
+            content = `
+              <div class="flex-grow flex flex-col items-center py-10 px-4 bg-gray-100">
+                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                  ${Icon("search", "w-10 h-10")}
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-8">Record Found</h2>
+                <div class="w-full max-w-2xl mb-8 flex justify-center">
+                  ${content}
+                </div>
+                <div class="flex gap-4">
+                  <button onclick="downloadElement('download-target', 'Record')" class="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg transition flex items-center gap-2">
+                    ${Icon("download")} Download
+                  </button>
+                  <button onclick="setView('miner-portal')" class="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-gray-50 transition">
+                    ${t("back")}
+                  </button>
+                </div>
+              </div>
+            `;
+        }
         else if (state.view === "success") content = renderSuccess();
         else if (state.view === "admin-login") content = renderAdminLogin();
         else if (state.view === "admin-dashboard") content = renderAdminDashboard();
         else if (state.view === "md-dashboard") content = renderMDDashboard();
-
+        
         const isMD = state.view === "md-dashboard";
+        const isStaff = state.view === "admin-dashboard";
+        const showHeader = !isMD && !isStaff;
+        
         app.innerHTML = `
-          ${isMD ? '' : renderHeader()}
+          ${showHeader ? renderHeader() : ''}
           ${content}
-          ${isMD ? '' : `
+          ${showHeader ? `
             <footer class="bg-emerald-900 text-white py-8 mt-auto text-center text-sm text-emerald-300">
-               &copy; ${new Date().getFullYear()} Yobe State Mining Company. All rights reserved.
+               © ${new Date().getFullYear()} Yobe State Mining Company. All rights reserved.
             </footer>
-          `}
+          ` : ''}
+          ${state.previewAppId ? renderApplicationPreviewModal() : ''}
         `;
         lucide.createIcons();
       }
-
       function renderMinerPortal() {
           return `
           <div class="animate-fade-in-up min-h-[60vh]">
@@ -1168,7 +1641,7 @@
                     <span class="font-bold text-sm text-gray-800 leading-tight">${t("renew")}</span>
                   </button>
                 </div>
-                <button onclick="setView('digital-suite')" class="mt-5 w-full bg-gray-900 text-white p-4 rounded-2xl shadow-lg hover:bg-black transition flex items-center justify-center gap-2">
+                <button onclick="setView('digital-suite')" class="mt-5 w-full bg-gray-900 text-white bg-4 rounded-2xl shadow-lg hover:bg-black transition flex items-center justify-center gap-2">
                   ${Icon("layout-dashboard","w-5 h-5")} ${t("digitalSuite")}
                 </button>
               </div>
@@ -1176,7 +1649,6 @@
           </div>
           `;
       }
-
       render();
     })();
   </script>
