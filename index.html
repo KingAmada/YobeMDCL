@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-  <script src="https://rawgit.com/cozmo/jsQR/master/dist/jsQR.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Courier+Prime:wght@400;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
@@ -1640,18 +1640,18 @@
                                                 </td>
                                                 <td class="px-6 py-4">
                                                     <div class="flex items-center justify-center gap-2">
-                                                        <button onclick="viewApplication(${app.id})" title="View Details" class="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition">${Icon("eye", "w-4 h-4")}</button>
+                                                        <button onclick="viewApplication(${JSON.stringify(app.id)})" title="View Details" class="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition">${Icon("eye", "w-4 h-4")}</button>
                                                         
                                                         ${app.status !== 'Approved' ? `
-                                                            <button onclick="updateStatus(${app.id}, 'Approved')" title="Approve" class="p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-600 transition">${Icon("check", "w-4 h-4")}</button>
+                                                            <button onclick="updateStatus(${JSON.stringify(app.id)}, 'Approved')" title="Approve" class="p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-600 transition">${Icon("check", "w-4 h-4")}</button>
                                                         ` : ''}
                                                         
                                                         ${app.status !== 'Rejected' ? `
-                                                            <button onclick="updateStatus(${app.id}, 'Rejected')" title="Reject" class="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-600 transition">${Icon("x", "w-4 h-4")}</button>
+                                                            <button onclick="updateStatus(${JSON.stringify(app.id)}, 'Rejected')" class="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-600 transition">${Icon("x", "w-4 h-4")}</button>
                                                         ` : ''}
                                                         
-                                                        <button onclick="editApplication(${app.id})" title="Edit" class="p-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 transition">${Icon("pencil", "w-4 h-4")}</button>
-                                                        <button onclick="deleteApplication(${app.id})" title="Delete" class="p-1.5 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-600 transition">${Icon("trash-2", "w-4 h-4")}</button>
+                                                        <button onclick="editApplication(${JSON.stringify(app.id)})" title="Edit" class="p-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 transition">${Icon("pencil", "w-4 h-4")}</button>
+                                                        <button onclick="deleteApplication(${JSON.stringify(app.id)})" title="Delete" class="p-1.5 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-600 transition">${Icon("trash-2", "w-4 h-4")}</button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1740,7 +1740,7 @@
                 <p class="text-xs text-green-300 uppercase">${a.location} LGA</p>
                 <div class="bg-white/10 rounded p-1 flex justify-between items-center text-[10px] border border-white/10 mt-2">
                    <div class="text-left"><div>Mineral</div><div class="font-bold text-yellow-300">${a.mineral}</div></div>
-                   <div class="text-right"><div>ID</div><div class="font-mono font-bold text-white">ART-${a.id}</div></div>
+                   <div class="text-right"><div>ID</div><div class="font-mono font-bold text-white">${a.id}</div></div>
                 </div>
              </div>
              <div class="mt-auto z-10 w-full flex justify-between items-end">
@@ -1779,8 +1779,8 @@
               <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
                 <button onclick="closePreview()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
                 ${a.status === 'Pending' ? `
-                  <button onclick="updateStatus(${a.id}, 'Rejected'); closePreview()" class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-medium">Reject</button>
-                  <button onclick="updateStatus(${a.id}, 'Approved'); closePreview()" class="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg font-bold shadow">Approve</button>
+                  <button onclick="updateStatus(${JSON.stringify(a.id)}, 'Rejected'); closePreview()" class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-medium">Reject</button>
+                  <button onclick="updateStatus(${JSON.stringify(a.id)}, 'Approved'); closePreview()" class="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg font-bold shadow">Approve</button>
                 ` : ''}
               </div>
             </div>
