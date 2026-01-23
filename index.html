@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-  <script src="https://rawgit.com/cozmo/jsQR/master/dist/jsQR.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Courier+Prime:wght@400;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
@@ -92,7 +92,7 @@
       // CONFIGURATION
       // =========================================================================
       
-      const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjB-0Qdk--4m9FBrqQN__iXYwFvlYjcJxEOPMitGiZLgWEgDkfebbAyB8XRhuoUk4/exec"; 
+      const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyY4en4hnSaKKcomnvLYPrCCgufqVmOQ928Dvd0Q4h4q0xpH-Tf0YfAh51Q53FpXCs/exec"; 
 
       // =========================================================================
       // BACKEND CONNECTION
@@ -199,6 +199,8 @@
           dsTitle: "Digital Mining Suite",
           dsSub: "Operations, Activity Records, Data, and Compliance.",
           dsActivity: "Activity Record",
+          dsExplore: "Exploration GIS",
+          dsLogistics: "Logistics",
           dsExtract: "Extraction & Fleet",
           dsData: "Data Management",
           dsCompliance: "Compliance Monitor",
@@ -243,6 +245,8 @@
           dsTitle: "Tsarin Dijital na Ma'adinai",
           dsSub: "Ayyuka, Rikodin Aiki, Bayanai, da Bin Doka.",
           dsActivity: "Rikodin Aiki",
+          dsExplore: "Binciken Kasa",
+          dsLogistics: "Sufuri",
           dsExtract: "Hakowa & Na'urori",
           dsData: "Sarrafa Bayanai",
           dsCompliance: "Sa Ido na Doka",
@@ -264,6 +268,7 @@
         currentUserRole: null, 
         isLoading: false,
         error: null,
+        editingId: null, // Added for edit functionality
         dataEntryModal: { open: false, type: '' },
         exitLogModal: { open: false },
         qrScannerModal: { open: false },
@@ -273,11 +278,12 @@
         exitLogs: [],
         adminSearch: "",
         applications: [
-          { id: 101, name: "Ibrahim Musa", type: "Artisan", location: "Damaturu", mineral: "Gold", date: "2023-10-24", status: "Pending", photoURL: null, issueDate: null, expiryDate: null, rcNumber: null, flags: [] }
+          { id: 101, name: "Ibrahim Musa", type: "Artisan", location: "Damaturu", mineral: "Gold", date: "2023-10-24", status: "Pending", paymentStatus: "Unpaid", paidAmount: 0, photoURL: null, issueDate: null, expiryDate: null, rcNumber: null, flags: [] },
+          { id: 102, name: "Sahara Mines Ltd", type: "License", location: "Fika", mineral: "Gypsum", date: "2023-11-05", status: "Approved", paymentStatus: "Paid", paidAmount: 150000, photoURL: null, rcNumber: "99281", issueDate: iso(addDays(-50)), expiryDate: iso(addDays(300)), flags: [] }
         ],
         previewAppId: null,
         timeString: new Date().toLocaleTimeString(),
-        dsTab: "activity",
+        dsTab: "explore",
         complianceCases: [
           { id: "C-001", severity: "High", title: "Expired license detected", detail: "Desert Sands Ltd (RC99882) has an expired license.", createdAt: iso(addDays(-2)), resolved: false }
         ],
@@ -511,13 +517,6 @@
             const parsedId = scannedText.includes('|') ? scannedText.split('|')[0].replace('ID:', '') : scannedText;
             
             if (state.scannerContext === 'exitLog') {
-               // We need to inject this into the input. Since we re-render, we can update a temp state or DOM
-               // Simpler to just update the input value after closing scanner if we weren't re-rendering entire app
-               // But our render() rebuilds DOM. So we must store it in a temp variable or update the input directly if the modal is separate.
-               // In this app architecture, render() redraws everything.
-               // We need to pass the scanned ID back to the exit log view.
-               // For now, let's just alert and pre-fill logic via a global var or similar if we wanted, 
-               // but cleaner is to modify the exit modal to accept a default value.
                // Hack for this architecture:
                document.getElementById('exit-id').value = parsedId;
                closeQRScanner();
@@ -543,33 +542,41 @@
       window.handlePhotoUpload = async function(event, type = 'photo') {
         const file = event.target.files[0];
         if (file) {
-          const url = URL.createObjectURL(file);
-          const img = new Image();
-          img.src = url;
-          await new Promise(r => img.onload = r);
+          // FIX: Use FileReader to convert to Base64 so Google Script can access the file data.
+          // Blob URLs (URL.createObjectURL) are local-only and cannot be saved to Drive.
+          const reader = new FileReader();
           
-          if (type === 'photo') {
-             const detections = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
-             if (detections.length === 0) {
-               state.error = 'No face detected. Please upload a clear photo.';
-               render();
-               setTimeout(() => {
-                   state.error = null;
+          reader.onload = async function(e) {
+              const base64Data = e.target.result;
+              const img = new Image();
+              img.src = base64Data;
+              await new Promise(r => img.onload = r);
+              
+              if (type === 'photo') {
+                 const detections = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+                 if (detections.length === 0) {
+                   state.error = 'No face detected. Please upload a clear photo.';
                    render();
-               }, 3000); // Clear error after 3 seconds
-               return;
-             }
-             state.formData.photoURL = url;
-          } else if (type === 'cac') {
-            state.formData.cacURL = url;
-            state.formData.cacName = file.name;
-          }
-          render();
+                   setTimeout(() => {
+                       state.error = null;
+                       render();
+                   }, 3000); // Clear error after 3 seconds
+                   return;
+                 }
+                 state.formData.photoURL = base64Data;
+              } else if (type === 'cac') {
+                state.formData.cacURL = base64Data;
+                state.formData.cacName = file.name;
+              }
+              render();
+          };
+          
+          reader.readAsDataURL(file);
         }
       };
       
       window.handleAdminSearch = function(event) {
-        state.adminSearch = event.target.value;
+        state.adminSearch = event.target.value.toLowerCase();
         render();
       }
       
@@ -581,6 +588,37 @@
         state.previewAppId = null;
         render();
       }
+
+      // --- New Admin Actions ---
+      window.deleteApplication = function(id) {
+        if(confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
+            state.applications = state.applications.filter(a => a.id !== id);
+            // Ideally call backend delete endpoint here
+            render();
+        }
+      };
+
+      window.editApplication = function(id) {
+        const app = state.applications.find(a => a.id === id);
+        if (!app) return;
+
+        // Pre-fill form data
+        state.editingId = id;
+        state.formData.name = app.name;
+        state.formData.companyName = app.name; // Fallback
+        state.formData.lga = app.location;
+        state.formData.mineral = app.mineral;
+        state.formData.photoURL = app.photoURL;
+        state.formData.rcNumber = app.rcNumber || "";
+        state.formData.phone = "08000000000"; // Placeholder if not stored in table view object
+
+        // Switch to appropriate form
+        if (app.type === 'Artisan') {
+            setView('artisan-form');
+        } else {
+            setView('license-form');
+        }
+      };
       
       // STAFF APPROVAL IMPLEMENTATION
       window.updateStatus = async function(id, newStatus) {
@@ -626,7 +664,7 @@
             errors.push(t("companySuffixError"));
           }
           if (!rcNumber.trim()) errors.push(t("required"));
-          if (!cacName) errors.push("CAC Certificate is required.");
+          if (!cacName && !state.editingId) errors.push("CAC Certificate is required."); // Only required for new
         }
         return errors;
       }
@@ -641,42 +679,74 @@
         state.isLoading = true;
         render();
 
-        state.generatedId = type === 'artisan' 
-            ? `ART-${Math.floor(100000 + Math.random() * 900000)}`
-            : `YSM-${state.formData.rcNumber}`;
-        state.issueDate = new Date();
-        state.expiryDate = addYears(1);
+        if (state.editingId) {
+            // Update Existing Application
+            const index = state.applications.findIndex(a => a.id === state.editingId);
+            if (index !== -1) {
+                const updatedApp = {
+                    ...state.applications[index],
+                    name: type === 'artisan' ? state.formData.name : state.formData.companyName,
+                    location: state.formData.lga,
+                    mineral: state.formData.mineral,
+                    photoURL: state.formData.photoURL,
+                    rcNumber: type === 'license' ? state.formData.rcNumber : null,
+                };
+                state.applications[index] = updatedApp;
+                // In real app, call update endpoint here
+            }
+            
+            setTimeout(() => {
+                state.isLoading = false;
+                state.editingId = null;
+                // If user is admin, go back to dashboard, else success screen
+                if (state.currentUserRole) {
+                    setView('admin-dashboard');
+                } else {
+                    setView("success");
+                }
+            }, 1000);
 
-        const backendData = {
-            id: state.generatedId,
-            type: type,
-            status: "Pending",
-            ...state.formData,
-            issueDate: iso(state.issueDate),
-            expiryDate: iso(state.expiryDate)
-        };
+        } else {
+            // Create New Application (Existing Logic)
+            state.generatedId = type === 'artisan' 
+                ? `ART-${Math.floor(100000 + Math.random() * 900000)}`
+                : `YSM-${state.formData.rcNumber}`;
+            state.issueDate = new Date();
+            state.expiryDate = addYears(1);
 
-        await saveToGoogleSheet(type === 'artisan' ? "Artisans" : "Licenses", backendData);
+            const backendData = {
+                id: state.generatedId,
+                type: type,
+                status: "Pending",
+                ...state.formData,
+                issueDate: iso(state.issueDate),
+                expiryDate: iso(state.expiryDate)
+            };
 
-        setTimeout(() => {
-          state.isLoading = false;
-          const newApp = {
-             id: Math.floor(Math.random() * 10000),
-             name: type === 'artisan' ? state.formData.name : state.formData.companyName,
-             type: type === 'artisan' ? 'Artisan' : 'License',
-             location: state.formData.lga,
-             mineral: state.formData.mineral,
-             date: iso(now()),
-             status: "Pending",
-             photoURL: state.formData.photoURL,
-             rcNumber: type === 'license' ? state.formData.rcNumber : null,
-             issueDate: null,
-             expiryDate: null,
-             flags: []
-          };
-          state.applications.unshift(newApp);
-          setView("success");
-        }, 1500);
+            await saveToGoogleSheet(type === 'artisan' ? "Artisans" : "Licenses", backendData);
+
+            setTimeout(() => {
+              state.isLoading = false;
+              const newApp = {
+                 id: Math.floor(Math.random() * 10000),
+                 name: type === 'artisan' ? state.formData.name : state.formData.companyName,
+                 type: type === 'artisan' ? 'Artisan' : 'License',
+                 location: state.formData.lga,
+                 mineral: state.formData.mineral,
+                 date: iso(now()),
+                 status: "Pending",
+                 paymentStatus: "Unpaid",
+                 paidAmount: 0,
+                 photoURL: state.formData.photoURL,
+                 rcNumber: type === 'license' ? state.formData.rcNumber : null,
+                 issueDate: null,
+                 expiryDate: null,
+                 flags: []
+              };
+              state.applications.unshift(newApp);
+              setView("success");
+            }, 1500);
+        }
       };
 
       window.handleAdminLogin = function(e) {
@@ -920,15 +990,15 @@
       function renderArtisanForm() {
         return `
           <div class="max-w-xl w-full mx-auto px-4 py-8 animate-slide-in-right">
-            <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
+            <button onclick="${state.editingId ? "setView('admin-dashboard')" : "setView('miner-portal')"}" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${state.editingId ? "Cancel Edit" : t("back")}</button>
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
               <div class="bg-yellow-500 p-4 text-emerald-900">
-                <h2 class="text-xl font-bold flex items-center gap-2">${Icon("pickaxe")} ${t("registerArtisan")}</h2>
+                <h2 class="text-xl font-bold flex items-center gap-2">${Icon("pickaxe")} ${state.editingId ? "Edit Artisan Record" : t("registerArtisan")}</h2>
               </div>
               <div class="p-6">
                 ${state.error ? `<div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">${state.error}</div>` : ''}
                 ${renderInput(t("formName"), "inp-name", "text", "Musa Ibrahim", state.formData.name, "state.formData.name = this.value")}
-                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "state.formData.phone = this.value.replace(/\\D/g, '').slice(0, 11)", "11")}
+                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "this.value = this.value.replace(/\\D/g, '').slice(0, 11); state.formData.phone = this.value", "11")}
                 ${renderSelect(t("formLocation"), "sel-lga", LGAs, state.formData.lga, "state.formData.lga = this.value")}
                 ${renderSelect(t("formMineral"), "sel-mineral", ["Gypsum", "Limestone", "Gold", "Diatomite", "Kaolin", "Potash"], state.formData.mineral, "state.formData.mineral = this.value")}
                 <div class="mb-6">
@@ -943,7 +1013,7 @@
                 </div>
                 <button onclick="submitForm('artisan')" class="w-full bg-emerald-800 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-emerald-900 transition flex justify-center items-center">
                   ${state.isLoading ? Icon("loader-2", "animate-spin mr-2") : ""}
-                  ${state.isLoading ? t("processing") : t("submit")}
+                  ${state.isLoading ? t("processing") : (state.editingId ? "Update Record" : t("submit"))}
                 </button>
               </div>
             </div>
@@ -953,16 +1023,16 @@
       function renderLicenseForm() {
         return `
           <div class="max-w-xl w-full mx-auto px-4 py-8 animate-slide-in-right">
-            <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
+            <button onclick="${state.editingId ? "setView('admin-dashboard')" : "setView('miner-portal')"}" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${state.editingId ? "Cancel Edit" : t("back")}</button>
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
               <div class="bg-emerald-700 p-4 text-white">
-                <h2 class="text-xl font-bold flex items-center gap-2">${Icon("building-2")} ${t("applyLicense")}</h2>
+                <h2 class="text-xl font-bold flex items-center gap-2">${Icon("building-2")} ${state.editingId ? "Edit License Record" : t("applyLicense")}</h2>
               </div>
               <div class="p-6">
                 ${state.error ? `<div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">${state.error}</div>` : ''}
                 ${renderInput(t("formCompany"), "inp-comp", "text", "Desert Mining Ltd", state.formData.companyName, "state.formData.companyName = this.value")}
                 ${renderInput(t("formRC"), "inp-rc", "text", "123456", state.formData.rcNumber, "state.formData.rcNumber = this.value.replace(/\\D/g, '')")}
-                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "state.formData.phone = this.value.replace(/\\D/g, '').slice(0, 11)", "11")}
+                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "this.value = this.value.replace(/\\D/g, '').slice(0, 11); state.formData.phone = this.value", "11")}
                 ${renderSelect(t("formLocation"), "sel-lga", LGAs, state.formData.lga, "state.formData.lga = this.value")}
                 ${renderSelect(t("formMineral"), "sel-mineral", ["Gypsum", "Limestone", "Gold", "Diatomite", "Kaolin", "Potash"], state.formData.mineral, "state.formData.mineral = this.value")}
                 <div class="mb-6">
@@ -975,7 +1045,7 @@
                 </div>
                 <button onclick="submitForm('license')" class="w-full bg-emerald-800 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-emerald-900 transition flex justify-center items-center">
                   ${state.isLoading ? Icon("loader-2", "animate-spin mr-2") : ""}
-                  ${state.isLoading ? t("processing") : t("submit")}
+                  ${state.isLoading ? t("processing") : (state.editingId ? "Update Record" : t("submit"))}
                 </button>
               </div>
             </div>
@@ -1067,10 +1137,10 @@
                     <div class="text-center max-w-3xl text-xl leading-relaxed z-10 mb-8 space-y-6 font-serif">
                       <p>This is to certify that</p>
                       <div class="relative py-4">
-                         <div class="text-4xl font-bold text-emerald-900 uppercase tracking-wide border-b-2 border-dotted border-gray-400 inline-block px-8 pb-2">
-                            ${state.formData.companyName}
-                         </div>
-                         <div class="text-sm text-gray-500 font-mono mt-2">RC Number: ${state.formData.rcNumber}</div>
+                          <div class="text-4xl font-bold text-emerald-900 uppercase tracking-wide border-b-2 border-dotted border-gray-400 inline-block px-8 pb-2">
+                             ${state.formData.companyName}
+                          </div>
+                          <div class="text-sm text-gray-500 font-mono mt-2">RC Number: ${state.formData.rcNumber}</div>
                       </div>
                       <p>Has been granted a license for <strong class="text-emerald-800 underline">${state.formData.mineral}</strong> mining operations in <strong class="text-emerald-800 underline">${state.formData.lga}</strong> LGA.</p>
                     </div>
@@ -1088,13 +1158,13 @@
                         <div class="text-sm font-bold text-red-600 uppercase">Valid Until: ${formatDate(state.expiryDate)}</div>
                       </div>
                       <div class="text-center">
-                         <div class="w-48 h-16 mx-auto mb-2 relative border-b border-gray-800">
+                          <div class="w-48 h-16 mx-auto mb-2 relative border-b border-gray-800">
                            <div class="absolute inset-0 flex items-end justify-center font-serif italic text-2xl text-blue-900 pb-1">
                                 Signed
                            </div>
-                         </div>
-                         <div class="font-bold text-xs uppercase tracking-wider text-gray-600">Managing Director</div>
-                         <div class="text-[10px] text-gray-400">Yobe State Mining Company</div>
+                          </div>
+                          <div class="font-bold text-xs uppercase tracking-wider text-gray-600">Managing Director</div>
+                          <div class="text-[10px] text-gray-400">Yobe State Mining Company</div>
                       </div>
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-r from-emerald-800 via-yellow-500 to-emerald-800"></div>
@@ -1131,39 +1201,30 @@
          const activeTab = state.dsTab;
          
          const contents = {
-             activity: `
+             explore: `
                 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up relative">
                     <div class="flex justify-between items-start mb-4">
-                        <h3 class="font-bold text-lg flex items-center gap-2">${Icon("clipboard-list", "text-emerald-600")} ${t("dsActivity")}</h3>
-                        <button onclick="openDataEntry('Activity')" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 flex items-center gap-1 shadow-sm">
-                            ${Icon("plus", "w-3 h-3")} Add Record
+                        <h3 class="font-bold text-lg flex items-center gap-2">${Icon("map", "text-emerald-600")} Geological Exploration GIS</h3>
+                        <button onclick="openDataEntry('Exploration')" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 flex items-center gap-1 shadow-sm">
+                            ${Icon("plus", "w-3 h-3")} Add Survey Data
                         </button>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
-                            <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    <th class="px-4 py-3">Date</th>
-                                    <th class="px-4 py-3">Location</th>
-                                    <th class="px-4 py-3">Activity</th>
-                                    <th class="px-4 py-3">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                <tr>
-                                    <td class="px-4 py-3">${iso(now())}</td>
-                                    <td class="px-4 py-3">Damaturu Site A</td>
-                                    <td class="px-4 py-3">Geological Survey</td>
-                                    <td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">Completed</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="px-4 py-3">${iso(addDays(-1))}</td>
-                                    <td class="px-4 py-3">Fika Zone 3</td>
-                                    <td class="px-4 py-3">Machinery Inspection</td>
-                                    <td class="px-4 py-3"><span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">Pending</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="bg-gray-100 rounded-xl h-64 flex items-center justify-center text-gray-400 mb-4 border border-dashed border-gray-300">
+                        Interactive GIS Map Placeholder
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <div class="text-gray-500 text-xs">Active Surveys</div>
+                            <div class="font-bold text-gray-900 text-xl">12</div>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <div class="text-gray-500 text-xs">Soil Samples</div>
+                            <div class="font-bold text-gray-900 text-xl">1,204</div>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <div class="text-gray-500 text-xs">Drill Targets</div>
+                            <div class="font-bold text-gray-900 text-xl">7</div>
+                        </div>
                     </div>
                 </div>
              `,
@@ -1196,6 +1257,20 @@
                             </div>
                             <div class="text-xs font-mono bg-red-100 text-red-700 px-2 py-1 rounded">OFFLINE</div>
                         </div>
+                    </div>
+                </div>
+             `,
+             logistics: `
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">${Icon("route", "text-orange-600")} Supply Chain Logistics</h3>
+                    <p class="text-gray-600 mb-4">Tracking mineral movement from extraction point to processing facilities.</p>
+                    <div class="w-full bg-gray-100 rounded-full h-2 mb-6 overflow-hidden">
+                        <div class="bg-orange-500 h-full w-[65%]"></div>
+                    </div>
+                    <div class="flex justify-between text-sm font-medium">
+                        <span>Extraction (Site A)</span>
+                        <span class="text-orange-600">In Transit (31 Trucks)</span>
+                        <span>Processing (Zone B)</span>
                     </div>
                 </div>
              `,
@@ -1247,8 +1322,9 @@
              </div>
              <div class="max-w-6xl mx-auto px-6 py-8">
                <div class="flex flex-wrap gap-2 mb-6">
-                 ${tabBtn("activity", t("dsActivity"), "clipboard-list")}
+                 ${tabBtn("explore", t("dsExplore"), "map")}
                  ${tabBtn("extract", t("dsExtract"), "truck")}
+                 ${tabBtn("logistics", t("dsLogistics"), "route")}
                  ${tabBtn("data", t("dsData"), "database")}
                  ${tabBtn("compliance", t("dsCompliance"), "shield-check")}
                </div>
@@ -1265,6 +1341,228 @@
            </div>
          `;
       }
+      
+      // FIXED: Added renderAdminDashboard Function
+      function renderAdminDashboard() {
+         const filteredApps = state.applications.filter(a => 
+            a.name.toLowerCase().includes(state.adminSearch) || 
+            (a.rcNumber && a.rcNumber.includes(state.adminSearch))
+         );
+         
+         return `
+           <div class="min-h-screen bg-gray-50 text-gray-800 pb-12 animate-fade-in-up font-sans">
+              <div class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                 <div class="flex items-center">
+                    <div class="p-2 bg-orange-100 rounded-lg mr-3">
+                       ${Icon("hard-hat", "w-6 h-6 text-orange-700")}
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900 tracking-tight">Staff Operations</h2>
+                        <div class="text-xs text-gray-500">Field Operations Unit</div>
+                    </div>
+                 </div>
+                 <div class="flex items-center space-x-4">
+                    <div class="text-right hidden md:block">
+                        <div class="text-xs text-gray-400 uppercase font-bold tracking-wider">Local Time</div>
+                        <div class="text-lg font-mono font-bold text-gray-800 live-time">${state.timeString}</div>
+                    </div>
+                    <button onclick="logout()" class="flex items-center bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 px-4 py-2 rounded-xl transition-colors text-sm font-bold border border-gray-200">
+                       ${Icon("log-out","w-4 h-4 mr-2")} ${t("logout")}
+                    </button>
+                 </div>
+              </div>
+              
+              <div class="max-w-6xl mx-auto p-6 md:p-8">
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                       <div class="flex justify-between items-start mb-2">
+                          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Pending Apps</p>
+                          <div class="p-2 bg-orange-50 text-orange-600 rounded-lg">${Icon("file-clock", "w-5 h-5")}</div>
+                       </div>
+                       <h3 class="text-3xl font-bold text-gray-900">${state.applications.filter(a => a.status === 'Pending').length}</h3>
+                       <p class="text-xs text-orange-600 mt-1 font-medium">Requires review</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                       <div class="flex justify-between items-start mb-2">
+                          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Sites</p>
+                          <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">${Icon("map-pin", "w-5 h-5")}</div>
+                       </div>
+                       <h3 class="text-3xl font-bold text-gray-900">${state.ops.extraction.activeSites}</h3>
+                       <p class="text-xs text-blue-600 mt-1 font-medium">Operational today</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                       <div class="flex justify-between items-start mb-2">
+                          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Today's Records</p>
+                          <div class="p-2 bg-green-50 text-green-600 rounded-lg">${Icon("check-square", "w-5 h-5")}</div>
+                       </div>
+                       <h3 class="text-3xl font-bold text-gray-900">142</h3>
+                       <p class="text-xs text-green-600 mt-1 font-medium">Data entries logged</p>
+                    </div>
+                 </div>
+
+                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <div class="lg:col-span-2 space-y-8">
+                        
+                        <div>
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">${Icon("zap", "text-yellow-500")} Quick Actions</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <button onclick="setView('artisan-form')" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-emerald-500 hover:shadow-md transition text-left group">
+                                    <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mb-3 group-hover:bg-emerald-600 group-hover:text-white transition">
+                                        ${Icon("user-plus", "w-5 h-5")}
+                                    </div>
+                                    <div class="font-bold text-sm text-gray-800">Register Miner</div>
+                                </button>
+                                
+                                <button onclick="openDataEntry('Extraction')" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-blue-500 hover:shadow-md transition text-left group">
+                                    <div class="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition">
+                                        ${Icon("truck", "w-5 h-5")}
+                                    </div>
+                                    <div class="font-bold text-sm text-gray-800">Log Extraction</div>
+                                </button>
+                                
+                                <button onclick="openQRScanner()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-500 hover:shadow-md transition text-left group">
+                                    <div class="w-10 h-10 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center mb-3 group-hover:bg-purple-600 group-hover:text-white transition">
+                                        ${Icon("scan", "w-5 h-5")}
+                                    </div>
+                                    <div class="font-bold text-sm text-gray-800">Scan ID Card</div>
+                                </button>
+                                
+                                <button onclick="openExitLog()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-red-500 hover:shadow-md transition text-left group">
+                                    <div class="w-10 h-10 bg-red-100 text-red-700 rounded-full flex items-center justify-center mb-3 group-hover:bg-red-600 group-hover:text-white transition">
+                                        ${Icon("log-out", "w-5 h-5")}
+                                    </div>
+                                    <div class="font-bold text-sm text-gray-800">Log Exit</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                <h3 class="font-bold text-gray-800 flex items-center gap-2">${Icon("inbox", "w-5 h-5 text-gray-500")} Application Queue</h3>
+                                <div class="relative w-48">
+                                    <input type="text" oninput="handleAdminSearch(event)" placeholder="Search..." class="w-full pl-8 pr-3 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                    <div class="absolute left-2.5 top-1.5 text-gray-400">${Icon("search", "w-3 h-3")}</div>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                                        <tr>
+                                            <th class="px-6 py-3">Applicant</th>
+                                            <th class="px-6 py-3">Type</th>
+                                            <th class="px-6 py-3">Location</th>
+                                            <th class="px-6 py-3">Payment</th>
+                                            <th class="px-6 py-3">Status</th>
+                                            <th class="px-6 py-3 text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        ${filteredApps.map(app => `
+                                            <tr class="hover:bg-gray-50 transition">
+                                                <td class="px-6 py-4 font-medium text-gray-900">
+                                                    <div>${app.name}</div>
+                                                    <div class="text-[10px] text-gray-400 font-mono">ID: ${app.id}</div>
+                                                </td>
+                                                <td class="px-6 py-4">${app.type}</td>
+                                                <td class="px-6 py-4">${app.location}</td>
+                                                <td class="px-6 py-4">
+                                                    <div class="text-sm font-bold text-gray-700">₦${app.paidAmount ? app.paidAmount.toLocaleString() : '0'}</div>
+                                                    <span class="text-[10px] uppercase font-bold ${app.paymentStatus === 'Paid' ? 'text-green-600' : 'text-red-600'}">
+                                                        ${app.paymentStatus || 'Unpaid'}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <span class="px-2 py-1 rounded text-xs font-bold ${
+                                                        app.status === 'Approved' ? 'bg-green-100 text-green-700' : 
+                                                        app.status === 'Pending' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                                                    }">
+                                                        ${app.status}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <div class="flex items-center justify-center gap-2">
+                                                        <button onclick="viewApplication(${app.id})" title="View Details" class="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition">${Icon("eye", "w-4 h-4")}</button>
+                                                        
+                                                        ${app.status !== 'Approved' ? `
+                                                            <button onclick="updateStatus(${app.id}, 'Approved')" title="Approve" class="p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-600 transition">${Icon("check", "w-4 h-4")}</button>
+                                                        ` : ''}
+                                                        
+                                                        ${app.status !== 'Rejected' ? `
+                                                            <button onclick="updateStatus(${app.id}, 'Rejected')" title="Reject" class="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-600 transition">${Icon("x", "w-4 h-4")}</button>
+                                                        ` : ''}
+                                                        
+                                                        <button onclick="editApplication(${app.id})" title="Edit" class="p-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 transition">${Icon("pencil", "w-4 h-4")}</button>
+                                                        <button onclick="deleteApplication(${app.id})" title="Delete" class="p-1.5 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-600 transition">${Icon("trash-2", "w-4 h-4")}</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                        ${filteredApps.length === 0 ? `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No applications found.</td></tr>` : ''}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">${Icon("alert-triangle", "text-red-500")} Compliance Alerts</h3>
+                            <div class="space-y-3">
+                                ${state.complianceCases.map(c => `
+                                    <div class="p-3 bg-red-50 rounded-lg border border-red-100">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-xs font-bold bg-red-200 text-red-800 px-1.5 py-0.5 rounded">${c.severity}</span>
+                                            <span class="text-[10px] text-gray-500">${c.createdAt}</span>
+                                        </div>
+                                        <h4 class="font-bold text-sm text-gray-900">${c.title}</h4>
+                                        <p class="text-xs text-gray-600 mt-1">${c.detail}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">${Icon("users", "text-blue-500")} Staff On Duty</h3>
+                            <ul class="space-y-3 text-sm">
+                                <li class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-xs">YA</div>
+                                    <div>
+                                        <div class="font-bold">Yusuf Ahmed</div>
+                                        <div class="text-xs text-green-600">Online - Damaturu Zone</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-xs">SJ</div>
+                                    <div>
+                                        <div class="font-bold">Sarah John</div>
+                                        <div class="text-xs text-gray-500">Offline - Last seen 2h ago</div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                 </div>
+              </div>
+              
+              ${renderDataEntryModal()}
+              ${renderExitLogModal()}
+              ${renderQRScannerModal()}
+           </div>
+         `;
+      }
+
+      function tabBtn(tab, label, icon) {
+        const active = state.dsTab === tab;
+        return `
+          <button onclick="setDsTab('${tab}')" class="${active ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'} flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 shadow-sm transition text-sm font-semibold">
+            ${Icon(icon, "w-4 h-4")} ${label}
+          </button>
+        `;
+      }
+
       function renderApplicationPreviewModal() {
         const a = state.applications.find(x => x.id === state.previewAppId);
         if (!a) return '';
@@ -1333,192 +1631,7 @@
           </div>
         `;
       }
-      function renderMDDashboard() {
-         const pipeline = state.dataOps.status;
-         const pipelineColor = pipeline === "OK" ? "text-green-500" : "text-red-500";
-         
-         const feeds = [
-           { url: "https://embed.skylinewebcams.com/img/992.jpg", name: "TSAVO EAST (KENYA)" },
-           { url: "https://embed.skylinewebcams.com/img/165.jpg", name: "ROME PANTHEON" },
-           { url: "https://embed.skylinewebcams.com/img/607.jpg", name: "PIAZZA VENEZIA" },
-           { url: "https://embed.skylinewebcams.com/img/4309.jpg", name: "DIANI BEACH" }
-         ];
-         return `
-           <div class="min-h-screen bg-gray-50 text-gray-800 pb-12 animate-fade-in-up font-sans">
-              <div class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-                 <div class="flex items-center">
-                    <div class="p-2 bg-emerald-100 rounded-lg mr-3">
-                       ${Icon("shield", "w-6 h-6 text-emerald-700")}
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-900 tracking-tight">${t("mdDashboard")}</h2>
-                        <div class="text-xs text-gray-500 flex items-center gap-1">
-                          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                          System Operational
-                        </div>
-                    </div>
-                 </div>
-                 <div class="flex items-center space-x-6">
-                    <button onclick="setView('digital-suite')" class="hidden md:flex items-center gap-2 text-xs bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl hover:bg-gray-200 transition text-gray-600 font-bold">
-                       ${Icon("layout-dashboard","w-4 h-4")} ${t("digitalSuite")}
-                    </button>
-                    <div class="text-right hidden md:block">
-                        <div class="text-xs text-gray-400 uppercase font-bold tracking-wider">Local Time</div>
-                        <div class="text-lg font-mono font-bold text-gray-800 live-time">${state.timeString}</div>
-                    </div>
-                    <button onclick="logout()" class="flex items-center bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 px-4 py-2 rounded-xl transition-colors text-sm font-bold border border-gray-200">
-                       ${Icon("log-out","w-4 h-4 mr-2")} ${t("logout")}
-                    </button>
-                 </div>
-              </div>
-              <div class="max-w-[1600px] mx-auto p-8">
-                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group">
-                       <div class="flex justify-between items-start mb-4 relative z-10">
-                          <div>
-                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Revenue</p>
-                             <h3 class="text-3xl font-bold text-gray-900 mt-1">₦ 84.5M</h3>
-                          </div>
-                           <div class="p-3 bg-green-50 text-green-600 rounded-xl">${Icon("banknote", "w-6 h-6")}</div>
-                       </div>
-                       <p class="text-xs text-green-600 mt-2 font-medium relative z-10">+14% vs last month</p>
-                       <button onclick="openDataEntry('Revenue')" class="absolute bottom-4 right-4 text-xs bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-700 px-2 py-1 rounded transition z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100">
-                          ${Icon("plus", "w-3 h-3")} Update
-                       </button>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                       <div class="flex justify-between items-start mb-4">
-                          <div>
-                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Compliance Score</p>
-                             <h3 class="text-3xl font-bold text-gray-900 mt-1">98%</h3>
-                          </div>
-                           <div class="p-3 bg-yellow-50 text-yellow-600 rounded-xl">${Icon("shield-check", "w-6 h-6")}</div>
-                       </div>
-                       <p class="text-xs text-gray-500 mt-2 font-medium">3 active flags</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                       <div class="flex justify-between items-start mb-4">
-                          <div>
-                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Sites</p>
-                             <h3 class="text-3xl font-bold text-gray-900 mt-1">${state.ops.extraction.activeSites}</h3>
-                          </div>
-                           <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">${Icon("map-pin", "w-6 h-6")}</div>
-                       </div>
-                       <p class="text-xs text-blue-600 mt-2 font-medium">12 new sites added</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                       <div class="flex justify-between items-start mb-4">
-                          <div>
-                             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Data Pipeline</p>
-                             <h3 class="text-3xl font-bold text-gray-900 mt-1">${pipeline}</h3>
-                          </div>
-                           <div class="p-3 bg-purple-50 text-purple-600 rounded-xl">${Icon("database", "w-6 h-6")}</div>
-                       </div>
-                       <p class="text-xs ${pipelineColor} mt-2 font-medium">${state.dataOps.ingestRatePerMin} events/min</p>
-                    </div>
-                 </div>
-                 <div class="grid grid-cols-12 gap-8">
-                    <div class="col-span-12 lg:col-span-8 space-y-8">
-                       <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md relative h-[600px]">
-                          <div class="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-xs border border-gray-200 shadow-sm flex items-center gap-2">
-                             <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                             <span class="font-bold text-gray-700">LIVE SATELLITE: ACTIVE MINERS TRACKING</span>
-                          </div>
-                          
-                          <div class="absolute top-1/2 left-1/2 w-full h-full transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-                             <div class="miner-dot" style="top: 40%; left: 45%;"></div>
-                             <div class="miner-dot" style="top: 42%; left: 48%; animation-delay: 0.5s"></div>
-                             <div class="miner-dot" style="top: 38%; left: 52%; animation-delay: 1.2s"></div>
-                             <div class="miner-dot" style="top: 60%; left: 30%;"></div>
-                             <div class="miner-dot" style="top: 62%; left: 32%; animation-delay: 0.8s"></div>
-                             <div class="miner-dot" style="top: 25%; left: 70%; animation-delay: 0.3s"></div>
-                             <div class="miner-dot" style="top: 28%; left: 72%; animation-delay: 1.5s"></div>
-                             <div class="miner-dot" style="top: 26%; left: 68%; animation-delay: 0.9s"></div>
-                          </div>
-                          <iframe
-                             width="100%"
-                             height="100%"
-                             frameborder="0"
-                             style="border:0"
-                             src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1005999.578656606!2d11.5!3d12.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sen!2sng!4v1610000000000!5m2!1sen!2sng"
-                             allowfullscreen>
-                          </iframe>
-                       </div>
-                    </div>
-                    <div class="col-span-12 lg:col-span-4 space-y-6">
-                       <div class="bg-gray-900 rounded-2xl overflow-hidden shadow-xl border border-gray-800">
-                          <div class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
-                             <span class="text-xs font-bold text-gray-300 flex items-center gap-2">
-                                ${Icon("camera", "w-3 h-3")} SITE SURVEILLANCE
-                             </span>
-                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-red-500 blink-red"></span>
-                                <span class="text-[10px] font-mono text-red-400">REC</span>
-                             </div>
-                          </div>
-                          
-                          <div class="grid grid-cols-2 gap-0.5 bg-black p-0.5">
-                             ${feeds.map(feed => `
-                               <div class="relative aspect-video bg-gray-800 group overflow-hidden">
-                                  <img 
-                                    src="${feed.url}" 
-                                    data-original-src="${feed.url}"
-                                    class="cctv-live-img w-full h-full object-cover opacity-90 group-hover:opacity-100 transition duration-500" 
-                                  />
-                                  <div class="absolute top-2 left-2 text-[8px] bg-black/60 text-white px-1.5 py-0.5 rounded backdrop-blur font-mono">${feed.name}</div>
-                                  <div class="absolute bottom-2 right-2 text-[8px] font-mono text-white/80 live-time">${state.timeString}</div>
-                                  <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                      <div class="w-8 h-8 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                                        <div class="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
-                                      </div>
-                                  </div>
-                               </div>
-                             `).join('')}
-                          </div>
-                          <div class="px-4 py-2 bg-gray-800 text-[10px] text-gray-400 font-mono text-center">
-                             Feeds auto-refreshing every 5s | Secure Connection
-                          </div>
-                       </div>
-                       <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                         <div class="flex justify-between items-center mb-4">
-                           <h3 class="font-bold text-lg flex items-center gap-2">${Icon("users", "w-5 h-5 text-blue-600")} On-Site Artisans</h3>
-                           <button onclick="openQRScanner()" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1">
-                             ${Icon("scan", "w-4 h-4")} Scan QR
-                           </button>
-                         </div>
-                         <ul class="space-y-2 max-h-40 overflow-y-auto custom-scroll">
-                           ${state.onSiteArtisans.length > 0 ? state.onSiteArtisans.map(id => `<li class="p-2 bg-gray-50 rounded-lg text-sm flex items-center gap-2">${Icon("user", "w-4 h-4 text-green-600")} ${id}</li>`).join('') : '<p class="text-gray-500 text-sm">No artisans on site</p>'}
-                         </ul>
-                       </div>
-                       <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                         <div class="flex justify-between items-center mb-4">
-                           <h3 class="font-bold text-lg flex items-center gap-2">${Icon("log-out", "w-5 h-5 text-red-600")} Exit Logs</h3>
-                           <button onclick="openExitLog()" class="bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-700 flex items-center gap-1">
-                             ${Icon("plus", "w-4 h-4")} Add Log
-                           </button>
-                         </div>
-                         <ul class="space-y-2 max-h-40 overflow-y-auto custom-scroll">
-                           ${state.exitLogs.length > 0 ? state.exitLogs.map(log => `<li class="p-2 bg-gray-50 rounded-lg text-sm">ID: ${log.id} | ${log.amount} ${log.mineral} | ${log.time}</li>`).join('') : '<p class="text-gray-500 text-sm">No exit logs</p>'}
-                         </ul>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-              
-              ${renderDataEntryModal()}
-              ${renderExitLogModal()}
-              ${renderQRScannerModal()}
-           </div>
-        `;
-      }
-      function tabBtn(tab, label, icon) {
-        const active = state.dsTab === tab;
-        return `
-          <button onclick="setDsTab('${tab}')" class="${active ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'} flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 shadow-sm transition text-sm font-semibold">
-            ${Icon(icon, "w-4 h-4")} ${label}
-          </button>
-        `;
-      }
+
       function renderAdminLogin() {
         return `
           <div class="min-h-[70vh] flex items-center justify-center p-4">
@@ -1558,7 +1671,7 @@
           <div class="max-w-md w-full mx-auto px-4 py-8 animate-slide-in-right">
             <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
             <div class="bg-white rounded-2xl shadow-xl p-6 text-center">
-              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("checkStatusTitle")}</h2>
+              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("checkStatusTitle") || "Check Status"}</h2>
               <input id="status-input" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4" placeholder="Enter ID..." />
               <div id="status-msg"></div>
               <button id="status-btn" onclick="checkStatus()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Check</button>
@@ -1568,14 +1681,14 @@
           <div class="max-w-md w-full mx-auto px-4 py-8 animate-slide-in-right">
             <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
             <div class="bg-white rounded-2xl shadow-xl p-6 text-center">
-              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("renewTitle")}</h2>
+              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("renewTitle") || "Renew Papers"}</h2>
               <input id="renew-input" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4" placeholder="License Number" />
               <div id="renew-msg"></div>
               <button id="renew-btn" onclick="checkRenew()" class="w-full bg-orange-600 text-white py-3 rounded-xl font-bold">Proceed</button>
             </div>
           </div>`;
         else if (state.view === "search-success") {
-            const { content, isArtisan } = renderCertificateOrID();
+            const { content: certContent, isArtisan } = renderCertificateOrID();
             content = `
               <div class="flex-grow flex flex-col items-center py-10 px-4 bg-gray-100">
                 <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
@@ -1583,7 +1696,7 @@
                 </div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-8">Record Found</h2>
                 <div class="w-full max-w-2xl mb-8 flex justify-center">
-                  ${content}
+                  ${certContent}
                 </div>
                 <div class="flex gap-4">
                   <button onclick="downloadElement('download-target', 'Record')" class="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg transition flex items-center gap-2">
