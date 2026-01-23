@@ -273,8 +273,7 @@
         exitLogs: [],
         adminSearch: "",
         applications: [
-          { id: 101, name: "Ibrahim Musa", type: "Artisan", location: "Damaturu", mineral: "Gold", date: "2023-10-24", status: "Pending", photoURL: null, issueDate: null, expiryDate: null, rcNumber: null, flags: [] },
-          { id: 102, name: "Sahara Mines Ltd", type: "License", location: "Fika", mineral: "Gypsum", date: "2023-11-05", status: "Approved", photoURL: null, rcNumber: "99281", issueDate: iso(addDays(-50)), expiryDate: iso(addDays(300)), flags: [] }
+          { id: 101, name: "Ibrahim Musa", type: "Artisan", location: "Damaturu", mineral: "Gold", date: "2023-10-24", status: "Pending", photoURL: null, issueDate: null, expiryDate: null, rcNumber: null, flags: [] }
         ],
         previewAppId: null,
         timeString: new Date().toLocaleTimeString(),
@@ -512,6 +511,13 @@
             const parsedId = scannedText.includes('|') ? scannedText.split('|')[0].replace('ID:', '') : scannedText;
             
             if (state.scannerContext === 'exitLog') {
+               // We need to inject this into the input. Since we re-render, we can update a temp state or DOM
+               // Simpler to just update the input value after closing scanner if we weren't re-rendering entire app
+               // But our render() rebuilds DOM. So we must store it in a temp variable or update the input directly if the modal is separate.
+               // In this app architecture, render() redraws everything.
+               // We need to pass the scanned ID back to the exit log view.
+               // For now, let's just alert and pre-fill logic via a global var or similar if we wanted, 
+               // but cleaner is to modify the exit modal to accept a default value.
                // Hack for this architecture:
                document.getElementById('exit-id').value = parsedId;
                closeQRScanner();
@@ -563,7 +569,7 @@
       };
       
       window.handleAdminSearch = function(event) {
-        state.adminSearch = event.target.value.toLowerCase();
+        state.adminSearch = event.target.value;
         render();
       }
       
@@ -922,7 +928,7 @@
               <div class="p-6">
                 ${state.error ? `<div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">${state.error}</div>` : ''}
                 ${renderInput(t("formName"), "inp-name", "text", "Musa Ibrahim", state.formData.name, "state.formData.name = this.value")}
-                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "this.value = this.value.replace(/\\D/g, '').slice(0, 11); state.formData.phone = this.value", "11")}
+                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "state.formData.phone = this.value.replace(/\\D/g, '').slice(0, 11)", "11")}
                 ${renderSelect(t("formLocation"), "sel-lga", LGAs, state.formData.lga, "state.formData.lga = this.value")}
                 ${renderSelect(t("formMineral"), "sel-mineral", ["Gypsum", "Limestone", "Gold", "Diatomite", "Kaolin", "Potash"], state.formData.mineral, "state.formData.mineral = this.value")}
                 <div class="mb-6">
@@ -956,7 +962,7 @@
                 ${state.error ? `<div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">${state.error}</div>` : ''}
                 ${renderInput(t("formCompany"), "inp-comp", "text", "Desert Mining Ltd", state.formData.companyName, "state.formData.companyName = this.value")}
                 ${renderInput(t("formRC"), "inp-rc", "text", "123456", state.formData.rcNumber, "state.formData.rcNumber = this.value.replace(/\\D/g, '')")}
-                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "this.value = this.value.replace(/\\D/g, '').slice(0, 11); state.formData.phone = this.value", "11")}
+                ${renderInput(t("formPhone"), "inp-phone", "tel", "08012345678", state.formData.phone, "state.formData.phone = this.value.replace(/\\D/g, '').slice(0, 11)", "11")}
                 ${renderSelect(t("formLocation"), "sel-lga", LGAs, state.formData.lga, "state.formData.lga = this.value")}
                 ${renderSelect(t("formMineral"), "sel-mineral", ["Gypsum", "Limestone", "Gold", "Diatomite", "Kaolin", "Potash"], state.formData.mineral, "state.formData.mineral = this.value")}
                 <div class="mb-6">
@@ -1061,10 +1067,10 @@
                     <div class="text-center max-w-3xl text-xl leading-relaxed z-10 mb-8 space-y-6 font-serif">
                       <p>This is to certify that</p>
                       <div class="relative py-4">
-                          <div class="text-4xl font-bold text-emerald-900 uppercase tracking-wide border-b-2 border-dotted border-gray-400 inline-block px-8 pb-2">
-                             ${state.formData.companyName}
-                          </div>
-                          <div class="text-sm text-gray-500 font-mono mt-2">RC Number: ${state.formData.rcNumber}</div>
+                         <div class="text-4xl font-bold text-emerald-900 uppercase tracking-wide border-b-2 border-dotted border-gray-400 inline-block px-8 pb-2">
+                            ${state.formData.companyName}
+                         </div>
+                         <div class="text-sm text-gray-500 font-mono mt-2">RC Number: ${state.formData.rcNumber}</div>
                       </div>
                       <p>Has been granted a license for <strong class="text-emerald-800 underline">${state.formData.mineral}</strong> mining operations in <strong class="text-emerald-800 underline">${state.formData.lga}</strong> LGA.</p>
                     </div>
@@ -1082,13 +1088,13 @@
                         <div class="text-sm font-bold text-red-600 uppercase">Valid Until: ${formatDate(state.expiryDate)}</div>
                       </div>
                       <div class="text-center">
-                          <div class="w-48 h-16 mx-auto mb-2 relative border-b border-gray-800">
+                         <div class="w-48 h-16 mx-auto mb-2 relative border-b border-gray-800">
                            <div class="absolute inset-0 flex items-end justify-center font-serif italic text-2xl text-blue-900 pb-1">
                                 Signed
                            </div>
-                          </div>
-                          <div class="font-bold text-xs uppercase tracking-wider text-gray-600">Managing Director</div>
-                          <div class="text-[10px] text-gray-400">Yobe State Mining Company</div>
+                         </div>
+                         <div class="font-bold text-xs uppercase tracking-wider text-gray-600">Managing Director</div>
+                         <div class="text-[10px] text-gray-400">Yobe State Mining Company</div>
                       </div>
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-r from-emerald-800 via-yellow-500 to-emerald-800"></div>
@@ -1125,105 +1131,105 @@
          const activeTab = state.dsTab;
          
          const contents = {
-           activity: `
-             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up relative">
-                 <div class="flex justify-between items-start mb-4">
-                     <h3 class="font-bold text-lg flex items-center gap-2">${Icon("clipboard-list", "text-emerald-600")} ${t("dsActivity")}</h3>
-                     <button onclick="openDataEntry('Activity')" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 flex items-center gap-1 shadow-sm">
-                         ${Icon("plus", "w-3 h-3")} Add Record
-                     </button>
-                 </div>
-                 <div class="overflow-x-auto">
-                     <table class="w-full text-sm text-left">
-                         <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
-                             <tr>
-                                 <th class="px-4 py-3">Date</th>
-                                 <th class="px-4 py-3">Location</th>
-                                 <th class="px-4 py-3">Activity</th>
-                                 <th class="px-4 py-3">Status</th>
-                             </tr>
-                         </thead>
-                         <tbody class="divide-y divide-gray-100">
-                             <tr>
-                                 <td class="px-4 py-3">${iso(now())}</td>
-                                 <td class="px-4 py-3">Damaturu Site A</td>
-                                 <td class="px-4 py-3">Geological Survey</td>
-                                 <td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">Completed</span></td>
-                             </tr>
-                             <tr>
-                                 <td class="px-4 py-3">${iso(addDays(-1))}</td>
-                                 <td class="px-4 py-3">Fika Zone 3</td>
-                                 <td class="px-4 py-3">Machinery Inspection</td>
-                                 <td class="px-4 py-3"><span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">Pending</span></td>
-                             </tr>
-                         </tbody>
-                     </table>
-                 </div>
-             </div>
-           `,
-           extract: `
-             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
-                 <div class="flex justify-between items-start mb-4">
-                     <h3 class="font-bold text-lg flex items-center gap-2">${Icon("truck", "text-blue-600")} Extraction & Fleet Management</h3>
-                      <button onclick="openDataEntry('Extraction')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
-                         ${Icon("plus", "w-3 h-3")} Report Extraction
-                     </button>
-                 </div>
-                 <div class="space-y-4">
-                     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                         <div class="flex items-center gap-3">
-                             <div class="w-2 h-2 rounded-full bg-green-500"></div>
-                             <div>
-                                 <div class="font-bold text-sm">CAT Excavator 320</div>
-                                 <div class="text-xs text-gray-500">Site: Potiskum | Fuel: 78%</div>
-                             </div>
-                         </div>
-                         <div class="text-xs font-mono bg-green-100 text-green-700 px-2 py-1 rounded">ONLINE</div>
-                     </div>
-                      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                         <div class="flex items-center gap-3">
-                             <div class="w-2 h-2 rounded-full bg-red-500"></div>
-                             <div>
-                                 <div class="font-bold text-sm">Dump Truck DT-04</div>
-                                 <div class="text-xs text-gray-500">Site: Damaturu | Maintenance Required</div>
-                             </div>
-                         </div>
-                         <div class="text-xs font-mono bg-red-100 text-red-700 px-2 py-1 rounded">OFFLINE</div>
-                     </div>
-                 </div>
-             </div>
-           `,
-           data: `
-             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
-                 <h3 class="font-bold text-lg mb-4 flex items-center gap-2">${Icon("database", "text-purple-600")} Data Management</h3>
-                 <div class="grid grid-cols-2 gap-4">
-                     <div class="p-4 bg-purple-50 rounded-xl border border-purple-100">
-                         <div class="text-purple-600 mb-2">${Icon("server", "w-6 h-6")}</div>
-                         <div class="text-2xl font-bold text-gray-900">18.4k</div>
-                         <div class="text-xs text-gray-500">Records Ingested Today</div>
-                     </div>
-                     <div class="p-4 bg-green-50 rounded-xl border border-green-100">
-                         <div class="text-green-600 mb-2">${Icon("activity", "w-6 h-6")}</div>
-                         <div class="text-2xl font-bold text-gray-900">99.9%</div>
-                         <div class="text-xs text-gray-500">Uptime</div>
-                     </div>
-                 </div>
-             </div>
-           `,
-           compliance: `
-             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
-                 <h3 class="font-bold text-lg mb-4 flex items-center gap-2">${Icon("shield-check", "text-red-600")} Regulatory Compliance</h3>
-                  <div class="flex items-center gap-4 p-4 bg-red-50 text-red-800 rounded-xl border border-red-100 mb-4">
-                     ${Icon("alert-triangle", "w-8 h-8 flex-shrink-0")}
-                     <div>
-                         <div class="font-bold">3 Critical Alerts</div>
-                         <div class="text-xs opacity-80">Immediate attention required for expired licenses in Zone 4.</div>
-                     </div>
-                     <button class="ml-auto bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-700">Resolve</button>
-                 </div>
-                 <div class="text-center text-sm text-gray-500">Full audit logs available in admin panel.</div>
-             </div>
-           `
+             activity: `
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up relative">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-lg flex items-center gap-2">${Icon("clipboard-list", "text-emerald-600")} ${t("dsActivity")}</h3>
+                        <button onclick="openDataEntry('Activity')" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 flex items-center gap-1 shadow-sm">
+                            ${Icon("plus", "w-3 h-3")} Add Record
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th class="px-4 py-3">Date</th>
+                                    <th class="px-4 py-3">Location</th>
+                                    <th class="px-4 py-3">Activity</th>
+                                    <th class="px-4 py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr>
+                                    <td class="px-4 py-3">${iso(now())}</td>
+                                    <td class="px-4 py-3">Damaturu Site A</td>
+                                    <td class="px-4 py-3">Geological Survey</td>
+                                    <td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">Completed</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3">${iso(addDays(-1))}</td>
+                                    <td class="px-4 py-3">Fika Zone 3</td>
+                                    <td class="px-4 py-3">Machinery Inspection</td>
+                                    <td class="px-4 py-3"><span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">Pending</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+             `,
+             extract: `
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-lg flex items-center gap-2">${Icon("truck", "text-blue-600")} Extraction & Fleet Management</h3>
+                         <button onclick="openDataEntry('Extraction')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
+                            ${Icon("plus", "w-3 h-3")} Report Extraction
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                <div>
+                                    <div class="font-bold text-sm">CAT Excavator 320</div>
+                                    <div class="text-xs text-gray-500">Site: Potiskum | Fuel: 78%</div>
+                                </div>
+                            </div>
+                            <div class="text-xs font-mono bg-green-100 text-green-700 px-2 py-1 rounded">ONLINE</div>
+                        </div>
+                         <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                                <div>
+                                    <div class="font-bold text-sm">Dump Truck DT-04</div>
+                                    <div class="text-xs text-gray-500">Site: Damaturu | Maintenance Required</div>
+                                </div>
+                            </div>
+                            <div class="text-xs font-mono bg-red-100 text-red-700 px-2 py-1 rounded">OFFLINE</div>
+                        </div>
+                    </div>
+                </div>
+             `,
+             data: `
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">${Icon("database", "text-purple-600")} Data Management</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                            <div class="text-purple-600 mb-2">${Icon("server", "w-6 h-6")}</div>
+                            <div class="text-2xl font-bold text-gray-900">18.4k</div>
+                            <div class="text-xs text-gray-500">Records Ingested Today</div>
+                        </div>
+                        <div class="p-4 bg-green-50 rounded-xl border border-green-100">
+                            <div class="text-green-600 mb-2">${Icon("activity", "w-6 h-6")}</div>
+                            <div class="text-2xl font-bold text-gray-900">99.9%</div>
+                            <div class="text-xs text-gray-500">Uptime</div>
+                        </div>
+                    </div>
+                </div>
+             `,
+             compliance: `
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-fade-in-up">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">${Icon("shield-check", "text-red-600")} Regulatory Compliance</h3>
+                     <div class="flex items-center gap-4 p-4 bg-red-50 text-red-800 rounded-xl border border-red-100 mb-4">
+                        ${Icon("alert-triangle", "w-8 h-8 flex-shrink-0")}
+                        <div>
+                            <div class="font-bold">3 Critical Alerts</div>
+                            <div class="text-xs opacity-80">Immediate attention required for expired licenses in Zone 4.</div>
+                        </div>
+                        <button class="ml-auto bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-700">Resolve</button>
+                    </div>
+                    <div class="text-center text-sm text-gray-500">Full audit logs available in admin panel.</div>
+                </div>
+             `
          };
          return `
            <div class="animate-fade-in-up">
@@ -1505,85 +1511,6 @@
            </div>
         `;
       }
-      
-      // FIXED: Added renderAdminDashboard Function
-      function renderAdminDashboard() {
-         const filteredApps = state.applications.filter(a => 
-            a.name.toLowerCase().includes(state.adminSearch) || 
-            (a.rcNumber && a.rcNumber.includes(state.adminSearch))
-         );
-         
-         return `
-           <div class="min-h-screen bg-gray-50 text-gray-800 pb-12 animate-fade-in-up font-sans">
-              <div class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-                 <div class="flex items-center">
-                    <div class="p-2 bg-blue-100 rounded-lg mr-3">
-                       ${Icon("briefcase", "w-6 h-6 text-blue-700")}
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-900 tracking-tight">Staff Operations</h2>
-                        <div class="text-xs text-gray-500 flex items-center gap-1">
-                          Role: Licensing Officer
-                        </div>
-                    </div>
-                 </div>
-                 <div class="flex items-center space-x-6">
-                    <button onclick="logout()" class="flex items-center bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 px-4 py-2 rounded-xl transition-colors text-sm font-bold border border-gray-200">
-                       ${Icon("log-out","w-4 h-4 mr-2")} ${t("logout")}
-                    </button>
-                 </div>
-              </div>
-              
-              <div class="max-w-6xl mx-auto p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-2xl font-bold">Applications</h3>
-                    <div class="relative w-64">
-                        <input type="text" oninput="handleAdminSearch(event)" placeholder="Search Name/RC..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <div class="absolute left-3 top-2.5 text-gray-400">${Icon("search", "w-4 h-4")}</div>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
-                            <tr>
-                                <th class="px-6 py-4">ID</th>
-                                <th class="px-6 py-4">Applicant</th>
-                                <th class="px-6 py-4">Type</th>
-                                <th class="px-6 py-4">Date</th>
-                                <th class="px-6 py-4">Status</th>
-                                <th class="px-6 py-4 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            ${filteredApps.map(app => `
-                                <tr class="hover:bg-gray-50 transition">
-                                    <td class="px-6 py-4 font-mono text-sm">#${app.id}</td>
-                                    <td class="px-6 py-4">
-                                        <div class="font-bold text-gray-900">${app.name}</div>
-                                        <div class="text-xs text-gray-500">${app.location} | ${app.mineral}</div>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm">${app.type}</td>
-                                    <td class="px-6 py-4 text-sm">${app.date}</td>
-                                    <td class="px-6 py-4">
-                                        <span class="px-2 py-1 rounded text-xs font-bold ${app.status === 'Approved' ? 'bg-green-100 text-green-700' : app.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">
-                                            ${app.status}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 text-right">
-                                        <button onclick="viewApplication(${app.id})" class="text-blue-600 hover:text-blue-800 text-sm font-bold">Manage</button>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    ${filteredApps.length === 0 ? `<div class="p-8 text-center text-gray-500">No applications found.</div>` : ''}
-                </div>
-              </div>
-           </div>
-         `;
-      }
-
       function tabBtn(tab, label, icon) {
         const active = state.dsTab === tab;
         return `
@@ -1631,7 +1558,7 @@
           <div class="max-w-md w-full mx-auto px-4 py-8 animate-slide-in-right">
             <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
             <div class="bg-white rounded-2xl shadow-xl p-6 text-center">
-              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("checkStatusTitle") || "Check Status"}</h2>
+              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("checkStatusTitle")}</h2>
               <input id="status-input" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4" placeholder="Enter ID..." />
               <div id="status-msg"></div>
               <button id="status-btn" onclick="checkStatus()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Check</button>
@@ -1641,7 +1568,7 @@
           <div class="max-w-md w-full mx-auto px-4 py-8 animate-slide-in-right">
             <button onclick="setView('miner-portal')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} ${t("back")}</button>
             <div class="bg-white rounded-2xl shadow-xl p-6 text-center">
-              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("renewTitle") || "Renew Papers"}</h2>
+              <h2 class="text-xl font-bold text-gray-800 mb-2">${t("renewTitle")}</h2>
               <input id="renew-input" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4" placeholder="License Number" />
               <div id="renew-msg"></div>
               <button id="renew-btn" onclick="checkRenew()" class="w-full bg-orange-600 text-white py-3 rounded-xl font-bold">Proceed</button>
