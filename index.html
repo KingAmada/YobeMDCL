@@ -294,7 +294,8 @@
         },
         formData: { name: "", companyName: "", rcNumber: "", phone: "", lga: LGAs[0], mineral: "Gypsum", photoURL: null, cacName: "", cacURL: null, repPhotoURL: null },
         generatedId: "", expiryDate: "", issueDate: "",
-        searchResult: null
+        searchResult: null,
+        renewalStatus: null // Added to track renewal logic
       };
       
       setInterval(() => {
@@ -458,13 +459,31 @@
         btn.innerText = "Checking...";
         msgEl.innerText = "";
         const result = await callBackend({ action: 'search', id: input });
-        btn.innerText = "Proceed";
         
         if (result && result.result === 'success') {
-            msgEl.innerText = "Record found. Proceeding to renewal...";
-            msgEl.className = "text-green-600 text-sm mt-2 font-bold";
-            setTimeout(() => alert("Redirecting to payment gateway..."), 500);
+            // Logic to determine if payment is needed
+            const data = result.data;
+            const expiry = data.expiryDate ? new Date(data.expiryDate) : new Date();
+            const today = new Date();
+            
+            // Calculate days remaining
+            const diffTime = expiry - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            // Assume renewal (payment) is needed if expired or expires within 90 days
+            // For demo purposes, we can force 'needed' to true if it matches our demo ID to show the UI
+            const isDemo = input === 'ART-123456' || input === 'YSM-123456'; 
+            const paymentNeeded = diffDays < 90 || isDemo; 
+
+            state.renewalStatus = {
+                needed: paymentNeeded,
+                daysRemaining: diffDays,
+                data: data
+            };
+            
+            setView('renewal-details');
         } else {
+            btn.innerText = "Proceed";
             msgEl.innerText = "Record not found.";
             msgEl.className = "text-red-500 text-sm mt-2 font-bold";
         }
@@ -1053,6 +1072,72 @@
         `;
       }
       
+      function renderRenewalDetails() {
+          const { needed, data, daysRemaining } = state.renewalStatus || {};
+          if (!data) return setView('renew-check'); // Fallback
+
+          return `
+          <div class="max-w-md w-full mx-auto px-4 py-8 animate-slide-in-right">
+            <button onclick="setView('renew-check')" class="text-gray-500 mb-4 flex items-center hover:text-gray-900 transition">${Icon("arrow-left", "w-5 h-5 mr-1")} Back</button>
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div class="bg-gray-50 p-6 border-b border-gray-100 text-center">
+                 <div class="w-20 h-20 bg-gray-200 rounded-full mx-auto mb-3 overflow-hidden border-4 border-white shadow-sm">
+                    <img src="${data.photoURL || ASSETS.miningLogo}" class="w-full h-full object-cover">
+                 </div>
+                 <h2 class="text-xl font-bold text-gray-900">${data.name || data.companyName}</h2>
+                 <p class="text-sm text-gray-500 font-mono bg-gray-200 inline-block px-2 py-0.5 rounded mt-1">${data.id}</p>
+                 <div class="mt-3 text-xs font-bold uppercase tracking-wider ${daysRemaining > 0 ? 'text-green-600' : 'text-red-600'}">
+                    ${daysRemaining > 0 ? `Expires in ${daysRemaining} days` : `Expired ${Math.abs(daysRemaining)} days ago`}
+                 </div>
+              </div>
+              <div class="p-6">
+                ${needed ? `
+                    <div class="text-center mb-6">
+                        <div class="p-4 bg-orange-50 text-orange-800 rounded-xl mb-6 border border-orange-100">
+                            ${Icon("alert-circle", "w-8 h-8 mx-auto mb-2 text-orange-600")}
+                            <p class="font-bold text-lg mb-1">Renewal Required</p>
+                            <p class="text-xs opacity-90">Payment is required to renew your license.</p>
+                        </div>
+                        
+                        <div class="bg-white border-2 border-dashed border-gray-300 p-5 rounded-xl text-left relative overflow-hidden group hover:border-emerald-500 transition-colors">
+                            <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-2">Pay into this Account</p>
+                            
+                            <div class="flex justify-between items-end mb-1">
+                                <div>
+                                    <p class="font-black text-2xl text-gray-900 tracking-tight">5770123123</p>
+                                    <p class="text-sm font-bold text-emerald-700">Stanbic IBTC</p>
+                                </div>
+                                <button onclick="navigator.clipboard.writeText('5770123123'); this.innerHTML='Copied!'; setTimeout(()=>this.innerHTML='${Icon('copy', 'w-5 h-5')}', 1500)" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg text-gray-600 transition">
+                                    ${Icon("copy", "w-5 h-5")}
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 border-t border-gray-100 pt-2 mt-2">Account Name: <span class="font-bold text-gray-700">Yobe State Mining Company</span></p>
+                        </div>
+
+                        <p class="text-[10px] text-gray-400 mt-6 mb-4">Please include your License ID <span class="font-mono text-gray-600">${data.id}</span> in the payment reference.</p>
+                        
+                        <button onclick="alert('Payment notification sent! We will verify and update your status.')" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition transform active:scale-95 flex justify-center items-center gap-2">
+                            ${Icon("check-circle", "w-5 h-5")} I Have Made Payment
+                        </button>
+                    </div>
+                ` : `
+                    <div class="text-center py-8">
+                        <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                            ${Icon("shield-check", "w-10 h-10")}
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">No Payment Required</h3>
+                        <p class="text-gray-500 text-sm max-w-xs mx-auto">Your license is valid and compliant with state regulations.</p>
+                        <div class="mt-8">
+                            <button onclick="setView('miner-portal')" class="bg-gray-900 text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-black transition">Return to Menu</button>
+                        </div>
+                    </div>
+                `}
+              </div>
+            </div>
+          </div>
+          `;
+      }
+
       // REUSED COMPONENT FOR SUCCESS OR SEARCH RESULT
       function renderCertificateOrID() {
         const isArtisan = state.generatedId.startsWith('ART');
@@ -1687,6 +1772,7 @@
               <button id="renew-btn" onclick="checkRenew()" class="w-full bg-orange-600 text-white py-3 rounded-xl font-bold">Proceed</button>
             </div>
           </div>`;
+        else if (state.view === "renewal-details") content = renderRenewalDetails();
         else if (state.view === "search-success") {
             const { content: certContent, isArtisan } = renderCertificateOrID();
             content = `
