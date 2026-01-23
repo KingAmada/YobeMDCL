@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="https://rawgit.com/cozmo/jsQR/master/dist/jsQR.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Courier+Prime:wght@400;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
@@ -123,7 +123,9 @@
                          lga: "Damaturu", 
                          mineral: "Gold", 
                          expiryDate: "2025-12-31", 
-                         photoURL: ASSETS.miningLogo 
+                         photoURL: ASSETS.miningLogo,
+                         paymentStatus: 'Unpaid',
+                         paidAmount: 0
                      } 
                  };
              }
@@ -277,10 +279,7 @@
         onSiteArtisans: [],
         exitLogs: [],
         adminSearch: "",
-        applications: [
-          { id: 101, name: "Ibrahim Musa", type: "Artisan", location: "Damaturu", mineral: "Gold", date: "2023-10-24", status: "Pending", paymentStatus: "Unpaid", paidAmount: 0, photoURL: null, issueDate: null, expiryDate: null, rcNumber: null, flags: [] },
-          { id: 102, name: "Sahara Mines Ltd", type: "License", location: "Fika", mineral: "Gypsum", date: "2023-11-05", status: "Approved", paymentStatus: "Paid", paidAmount: 150000, photoURL: null, rcNumber: "99281", issueDate: iso(addDays(-50)), expiryDate: iso(addDays(300)), flags: [] }
-        ],
+        applications: [], // REMOVED MOCK DATA
         previewAppId: null,
         timeString: new Date().toLocaleTimeString(),
         dsTab: "explore",
@@ -295,7 +294,7 @@
         formData: { name: "", companyName: "", rcNumber: "", phone: "", lga: LGAs[0], mineral: "Gypsum", photoURL: null, cacName: "", cacURL: null, repPhotoURL: null },
         generatedId: "", expiryDate: "", issueDate: "",
         searchResult: null,
-        renewalStatus: null // Added to track renewal logic
+        renewalStatus: null
       };
       
       setInterval(() => {
@@ -344,6 +343,46 @@
         render();
       }
       
+      // --- Data Loading Logic ---
+      async function loadApplications() {
+        state.isLoading = true;
+        render();
+        
+        try {
+            // Fetch Artisans
+            const artisans = await callBackend({ action: "readSheet", sheet: "Artisans" });
+            // Fetch Licenses
+            const licenses = await callBackend({ action: "readSheet", sheet: "Licenses" });
+            
+            const rawApps = [];
+            
+            if(artisans && artisans.result === 'success' && Array.isArray(artisans.data)) {
+                rawApps.push(...artisans.data.map(d => ({...d, type: 'Artisan', name: d.name || d.Full_Name })));
+            }
+            if(licenses && licenses.result === 'success' && Array.isArray(licenses.data)) {
+                rawApps.push(...licenses.data.map(d => ({...d, type: 'License', name: d.companyName || d.Company_Name })));
+            }
+            
+            // DEDUPLICATION: Sort by timestamp/ID logic. 
+            // Since sheet is append-only, the last entry for an ID is the latest status.
+            const uniqueMap = new Map();
+            rawApps.forEach(app => {
+                if(app.id) uniqueMap.set(app.id, app);
+            });
+            
+            state.applications = Array.from(uniqueMap.values()).sort((a,b) => {
+                // Mock sorting by recent
+                return (b.id && a.id) ? b.id.localeCompare(a.id) : 0;
+            });
+            
+        } catch(e) {
+            console.error("Error loading data", e);
+        }
+        
+        state.isLoading = false;
+        render();
+      }
+
       window.submitDataEntry = async function() {
         const btn = document.getElementById('data-submit-btn');
         if(btn) btn.innerHTML = "Saving...";
@@ -471,9 +510,9 @@
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
             // Assume renewal (payment) is needed if expired or expires within 90 days
-            // For demo purposes, we can force 'needed' to true if it matches our demo ID to show the UI
-            const isDemo = input === 'ART-123456' || input === 'YSM-123456'; 
-            const paymentNeeded = diffDays < 90 || isDemo; 
+            // Also check payment status if stored in sheet
+            const paymentStatus = data.paymentStatus || 'Unpaid';
+            const paymentNeeded = diffDays < 90 && paymentStatus !== 'Paid'; 
 
             state.renewalStatus = {
                 needed: paymentNeeded,
@@ -488,6 +527,31 @@
             msgEl.className = "text-red-500 text-sm mt-2 font-bold";
         }
       }
+      
+      window.recordPayment = async function() {
+          const { data } = state.renewalStatus;
+          if(!data) return;
+          
+          if(confirm("Confirm that you have transferred the funds? This will log a payment request.")) {
+              const amount = data.id.startsWith('ART') ? 20000 : 150000;
+              
+              // We save a NEW row to the sheet with updated info to persist it.
+              // In a real DB we would update, but for Sheets append-only is safer.
+              const updatedData = {
+                  ...data,
+                  paymentStatus: "Paid",
+                  paidAmount: amount,
+                  expiryDate: iso(addYears(1)), // Extend validity
+                  lastPaymentDate: iso(now())
+              };
+              
+              const sheetName = data.id.startsWith('ART') ? "Artisans" : "Licenses";
+              await saveToGoogleSheet(sheetName, updatedData);
+              
+              alert("Payment recorded! Your license is now valid.");
+              setView('miner-portal');
+          }
+      };
 
       window.openQRScanner = function(context = 'global') {
         state.scannerContext = context;
@@ -629,7 +693,7 @@
         state.formData.mineral = app.mineral;
         state.formData.photoURL = app.photoURL;
         state.formData.rcNumber = app.rcNumber || "";
-        state.formData.phone = "08000000000"; // Placeholder if not stored in table view object
+        state.formData.phone = app.phone || "08000000000";
 
         // Switch to appropriate form
         if (app.type === 'Artisan') {
@@ -644,21 +708,28 @@
         const app = state.applications.find(a => a.id === id);
         if (app) {
           app.status = newStatus;
+          // Determine amount based on type
+          const amount = app.type === 'Artisan' ? 20000 : 150000;
+          
+          // Update local state
+          app.paymentStatus = "Unpaid"; // Approval doesn't mean paid yet unless explicit
+          
+          // If approving, we might want to set expiry
           if (newStatus === "Approved") {
             app.issueDate = app.issueDate || iso(now());
             app.expiryDate = app.expiryDate || iso(addYears(1));
-            
-            // Log approval to backend
-            await saveToGoogleSheet("ApprovalLog", {
-                appId: app.id,
-                status: newStatus,
-                staffAction: "Approved",
-                timestamp: new Date().toLocaleString()
-            });
-            alert(`Application ${id} Approved Successfully`);
-          } else {
-             alert(`Application ${id} Rejected`);
-          }
+          } 
+          
+          // Send FULL updated record to backend (Append model)
+          const sheetName = app.type === 'Artisan' ? "Artisans" : "Licenses";
+          await saveToGoogleSheet(sheetName, {
+              ...app,
+              status: newStatus,
+              staffAction: "StatusUpdate",
+              timestamp: new Date().toLocaleString()
+          });
+          
+          alert(`Application ${id} status updated to ${newStatus}`);
           render();
         }
       }
@@ -699,25 +770,28 @@
         render();
 
         if (state.editingId) {
-            // Update Existing Application
+            // Update Existing Application (Append new row with same ID)
             const index = state.applications.findIndex(a => a.id === state.editingId);
             if (index !== -1) {
+                const original = state.applications[index];
                 const updatedApp = {
-                    ...state.applications[index],
+                    ...original,
                     name: type === 'artisan' ? state.formData.name : state.formData.companyName,
                     location: state.formData.lga,
                     mineral: state.formData.mineral,
                     photoURL: state.formData.photoURL,
                     rcNumber: type === 'license' ? state.formData.rcNumber : null,
+                    phone: state.formData.phone,
+                    updatedAt: iso(now())
                 };
+                
                 state.applications[index] = updatedApp;
-                // In real app, call update endpoint here
+                await saveToGoogleSheet(type === 'artisan' ? "Artisans" : "Licenses", updatedApp);
             }
             
             setTimeout(() => {
                 state.isLoading = false;
                 state.editingId = null;
-                // If user is admin, go back to dashboard, else success screen
                 if (state.currentUserRole) {
                     setView('admin-dashboard');
                 } else {
@@ -726,17 +800,23 @@
             }, 1000);
 
         } else {
-            // Create New Application (Existing Logic)
+            // Create New Application
             state.generatedId = type === 'artisan' 
                 ? `ART-${Math.floor(100000 + Math.random() * 900000)}`
                 : `YSM-${state.formData.rcNumber}`;
             state.issueDate = new Date();
             state.expiryDate = addYears(1);
+            
+            // Set payment defaults
+            const amount = type === 'artisan' ? 20000 : 150000;
 
             const backendData = {
                 id: state.generatedId,
                 type: type,
                 status: "Pending",
+                paymentStatus: "Unpaid",
+                paidAmount: 0,
+                fee: amount,
                 ...state.formData,
                 issueDate: iso(state.issueDate),
                 expiryDate: iso(state.expiryDate)
@@ -746,20 +826,9 @@
 
             setTimeout(() => {
               state.isLoading = false;
+              // Add to local state immediately for UX
               const newApp = {
-                 id: Math.floor(Math.random() * 10000),
-                 name: type === 'artisan' ? state.formData.name : state.formData.companyName,
-                 type: type === 'artisan' ? 'Artisan' : 'License',
-                 location: state.formData.lga,
-                 mineral: state.formData.mineral,
-                 date: iso(now()),
-                 status: "Pending",
-                 paymentStatus: "Unpaid",
-                 paidAmount: 0,
-                 photoURL: state.formData.photoURL,
-                 rcNumber: type === 'license' ? state.formData.rcNumber : null,
-                 issueDate: null,
-                 expiryDate: null,
+                 ...backendData,
                  flags: []
               };
               state.applications.unshift(newApp);
@@ -777,9 +846,11 @@
         setTimeout(() => {
           if (input.value === "3333") {
              state.currentUserRole = 'md';
+             loadApplications(); // Load real data
              setView('md-dashboard');
           } else {
              state.currentUserRole = 'staff';
+             loadApplications(); // Load real data
              setView('admin-dashboard');
           }
         }, 1000);
@@ -1116,7 +1187,7 @@
 
                         <p class="text-[10px] text-gray-400 mt-6 mb-4">Please include your License ID <span class="font-mono text-gray-600">${data.id}</span> in the payment reference.</p>
                         
-                        <button onclick="alert('Payment notification sent! We will verify and update your status.')" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition transform active:scale-95 flex justify-center items-center gap-2">
+                        <button onclick="recordPayment()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition transform active:scale-95 flex justify-center items-center gap-2">
                             ${Icon("check-circle", "w-5 h-5")} I Have Made Payment
                         </button>
                     </div>
